@@ -800,7 +800,7 @@ select_target_interactive() {
 
 # --- dependency validation guard ---
 # Check that required binaries exist for the selected modules. Missing required
-# deps block the install (grouped, with pacman advice); optional deps only warn.
+# deps block the install (grouped pacman/yay advice); optional deps only warn.
 # Works in --check (reports but never blocks) unless --ignore-deps is given.
 validate_dependencies() {
   [ "$IGNORE_DEPS" = 1 ] && { echo -e "  ${DIM}· dependency validation skipped (--ignore-deps)${RESET}"; return; }
@@ -809,44 +809,102 @@ validate_dependencies() {
   local -a need=() opt=() missing=() soft=()
   local -A seen_need seen_opt
 
-  # nvim: required = core editor + lazy.nvim bootstrap + fzf-lua backend
+  # Required binaries per module, derived from what the configs actually exec:
+  # - nvim: lazy.nvim bootstrap needs git; fzf-lua backends need rg/fd/fzf
+  # - zsh: .zshrc unconditionally runs fastfetch and evals the
+  #   starship/zoxide/atuin init scripts (missing = error on every shell)
+  # - hypr: autostart execs, binds (wpctl/playerctl/brightnessctl), the
+  #   screenshot flow (grim/satty/wl-copy), ags toggles, kitty terminal,
+  #   matugen theme (general.lua requires generated/color.lua)
+  # - ags: build (bun/sass), wallpaper daemon (awww), palette (matugen),
+  #   clipboard service (cclip)
+  # - mpv: mpv.conf points ytdl_hook at yt-dlp
   local nvim_need=(nvim git rg fd fzf)
   local nvim_opt=(rustc cargo tree-sitter dotnet node bun npm)
 
-  local zsh_need=(zsh git)
-  local zsh_opt=(zoxide starship atuin fastfetch eza bat fd rg fzf)
+  local zsh_need=(zsh git starship zoxide atuin fastfetch)
+  local zsh_opt=(eza bat rg fzf)
 
-  local hypr_need=(Hyprland hyprctl hypridle hyprlock hyprpm kitty ags matugen)
-  local hypr_opt=(cclipd awww grim slurp satty gnome-keyring-daemon polkit-gnome-authentication-agent-1 brave-origin hyprsplit)
+  local hypr_need=(Hyprland hyprctl hypridle hyprlock kitty ags matugen cclip cclipd grim satty wl-copy wpctl playerctl brightnessctl)
+  local hypr_opt=(hyprpm nemo gnome-keyring-daemon brave-origin)
 
-  local ags_need=(ags bun sass)
-  local ags_opt=(node matugen)
+  local ags_need=(ags bun sass awww awww-daemon matugen cclip)
+  local ags_opt=(node wl-copy notify-send watchexec)
 
   local matugen_need=(matugen)
   local kitty_need=(kitty)
-  local mpv_need=(mpv)
+  local mpv_need=(mpv yt-dlp)
   local fastfetch_need=(fastfetch)
   local atuin_need=(atuin)
 
-  # Reasons for each required dep (pacman advice snippets).
+  # Binary -> Arch package (for install advice). Binaries not listed here
+  # install under their own name.
+  local -A PKG_OF=(
+    [Hyprland]=hyprland [hyprctl]=hyprland
+    [nvim]=neovim [rg]=ripgrep
+    [sass]=dart-sass [node]=nodejs
+    [ags]=aylurs-gtk-shell-git [cclip]=cclip [cclipd]=cclip
+    [brave-origin]=brave-origin-bin
+    [awww]=awww [awww-daemon]=awww
+    [wl-copy]=wl-clipboard [wpctl]=wireplumber
+    [notify-send]=libnotify
+    [polkit-agent]=hyprpolkitagent
+  )
+  # Package source: everything defaults to the official repos (pacman);
+  # these come from the AUR (yay).
+  local -A AUR_PKG=(
+    [aylurs-gtk-shell-git]=1 [cclip]=1 [brave-origin-bin]=1
+  )
+
+  # zsh plugin files sourced unconditionally by scripts/plugins.sh.
+  # Key doubles as the Arch package name.
+  local -A ZSH_PLUGIN=(
+    [zsh-autosuggestions]=/usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+    [zsh-syntax-highlighting]=/usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  )
+
+  # What each missing binary means (shown beside it in the report).
   local -A reason=(
     [nvim]="neovim (editor)"
     [git]="git (lazy.nvim bootstrap + git tooling)"
-    [rg]="ripgrep"
-    [fd]="fd"
-    [fzf]="fzf"
+    [rg]="ripgrep (fzf-lua backend)"
+    [fd]="fd (fzf-lua backend)"
+    [fzf]="fzf (picker backend)"
     [zsh]="zsh"
-    [Hyprland]="hyprland"
+    [starship]="starship (prompt, eval'd by plugins.sh)"
+    [zoxide]="zoxide (eval'd by plugins.sh)"
+    [atuin]="atuin (eval'd by plugins.sh)"
+    [fastfetch]="fastfetch (runs on every shell start)"
+    [eza]="eza (ls aliases)"
+    [bat]="bat (cat alias)"
+    [Hyprland]="hyprland (compositor)"
     [hyprctl]="hyprland (hyprctl)"
-    [hypridle]="hypridle"
-    [hyprlock]="hyprlock"
-    [hyprpm]="hyprpm"
-    [kitty]="kitty"
-    [ags]="ags (astal shell)"
+    [hypridle]="hypridle (idle daemon, autostarted)"
+    [hyprlock]="hyprlock (lock screen)"
+    [hyprpm]="hyprpm (plugin manager, autostart reload)"
+    [kitty]="kitty (default terminal)"
+    [ags]="ags (astal shell: launcher/popups/bar)"
     [matugen]="matugen (Material You theming)"
+    [cclip]="cclip (clipboard history)"
+    [cclipd]="cclip (clipboard daemon, autostarted)"
+    [grim]="grim (screenshot flow)"
+    [satty]="satty (screenshot annotator)"
+    [wl-copy]="wl-clipboard (screenshot + emoji copy)"
+    [wpctl]="wireplumber (volume binds)"
+    [playerctl]="playerctl (media binds + idle lock)"
+    [brightnessctl]="brightnessctl (brightness binds)"
+    [nemo]="nemo (file manager)"
+    [gnome-keyring-daemon]="gnome-keyring (secrets daemon, autostarted)"
+    [brave-origin]="brave (browser, autostarted)"
     [bun]="bun (ags build tool)"
-    [sass]="sass (ags stylesheet compiler)"
+    [sass]="dart-sass (ags stylesheet compiler)"
+    [awww]="awww (wallpaper painter)"
+    [awww-daemon]="awww (wallpaper daemon)"
+    [node]="nodejs (optional tooling)"
+    [notify-send]="libnotify (ags toasts)"
+    [watchexec]="watchexec (ags dev loop)"
     [mpv]="mpv"
+    [yt-dlp]="yt-dlp (mpv ytdl_hook backend)"
     [fastfetch]="fastfetch"
     [atuin]="atuin"
   )
