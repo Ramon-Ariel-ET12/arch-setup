@@ -1,7 +1,6 @@
 local Hy = _G.Hy
 
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user import-environment QT_QPA_PLATFORMTHEME")
     hl.exec_cmd("dbus-update-activation-environment --systemd --all")
 
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
@@ -12,7 +11,6 @@ hl.on("hyprland.start", function()
     -- -s 2   ignore single-byte entries (kills nvim unnamedplus "x" noise)
     -- -t     MIME accept order: prefer PNG, then any image, then UTF-8 text, then *.
     hl.exec_cmd("cclipd -s 2 -t image/png -t 'image/*' -t 'text/plain;charset=utf-8' -t 'text/*' -t '*'")
-    hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd(Hy.terminal)
     hl.exec_cmd("brave-origin")
