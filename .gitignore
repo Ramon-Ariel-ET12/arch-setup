@@ -1,60 +1,93 @@
-# OS
+# ============================================================================
+# OS / filesystem metadata
+# ============================================================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
-*~
-*.bak
+ehthumbs.db
+desktop.ini
+.directory
 
-# Secrets / local
+# ============================================================================
+# Secrets and machine-local credentials
+# ============================================================================
 .env
+.env.*
+!.env.example
+!.env.sample
 *.pem
 *.key
+*.p12
+*.pfx
+*.crt
 *.secret
+id_rsa
+id_ed25519
 
-# Zsh - history is sensitive and local
-zsh/.zsh_history
-.zsh_history
+# ============================================================================
+# Shell history (sensitive, machine-local)
+# ============================================================================
+.*_history
+.lesshst
 
-# Editor / temp
+# ============================================================================
+# Editor / IDE / temp artifacts
+# ============================================================================
+*~
+*.bak
+*.orig
+*.rej
 *.swp
 *.swo
 *.tmp
+*.temp
 *.log
-*~
+*.tsbuildinfo
+.eslintcache
+.cache/
+tags
+.vscode/
+.idea/
+.direnv/
 
-# Neovim - local overrides (previously in nvim/.gitignore)
-nvim/.luarc.json
-nvim/lazy-lock.json
-
-# Hypr (previously in hypr/.gitignore)
-# Matugen generated outputs (regenerated from wallpaper)
-hypr/generated/
-hypr/hyprlock.conf
-hypr/.luarc.json
-
-# AGS (previously in ags/.gitignore) - vendored deps + runtime outputs
-ags/node_modules/
-ags/@girs/
-ags/dist/
-ags/logs.log
-ags/data/
-ags/cache/
-ags/.deps/
-ags/.commandcode/
+# ============================================================================
+# Per-project local tool state (generic — covers every module directory)
+# ============================================================================
+**/.luarc.json
+!**/hypr/hyprsplit/.luarc.json
+**/node_modules/
+**/.deps/
+**/@girs/
+**/.cache/
+**/.commandcode/
 ags/opencode.json
 
-# AGS generated palettes (regenerated at runtime)
+# Neovim: lockfile intentionally kept out of the repo (re-resolved per machine)
+nvim/lazy-lock.json
+
+# ============================================================================
+# Generated at runtime (regenerated from wallpaper / templates)
+# ============================================================================
+hypr/generated/
+hypr/hyprlock.conf
 ags/style/abstracts/_matugen.scss
 ags/style/abstracts/_hyprland.scss
 
-# Kitty - local runtime state
-kitty/.luarc.json
+# AGS: build output and runtime state
+ags/dist/
+ags/out/
+ags/data/
+ags/logs.log
+ags/cache/
 
-# MPV - local editor config
-mpv/.luarc.json
+# Matugen output
+matugen/generated/
 
 # Scratch / local experiments
 temp/
 
-# CommandCode learning state (local only)
-.commandcode/
-**/.commandcode/
+# Note: hypr/hyprsplit is a vendored upstream project and keeps its own
+# .gitignore; it is intentionally left untouched.
