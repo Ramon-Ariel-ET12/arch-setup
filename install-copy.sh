@@ -615,6 +615,7 @@ validate_dependencies() {
   local zsh_need=(zsh git starship zoxide atuin fastfetch)
   local zsh_opt=(eza bat rg fzf)
 
+  local font_need=(fc-match)
   local hypr_need=(Hyprland hyprctl hypridle hyprlock kitty ags matugen cclip cclipd grim satty wl-copy wpctl playerctl)
   local hypr_opt=(hyprpm brightnessctl nemo gnome-keyring-daemon brave-origin)
 
@@ -638,6 +639,7 @@ validate_dependencies() {
     [awww]=awww [awww-daemon]=awww
     [wl-copy]=wl-clipboard [wpctl]=wireplumber
     [notify-send]=libnotify [yt-dlp]=yt-dlp
+    [fc-match]=fontconfig
   )
   # Packages that live in the AUR (installed with yay, not pacman).
   local -A AUR_PKG=(
@@ -704,6 +706,7 @@ validate_dependencies() {
     [awww-daemon]="awww (wallpaper daemon)"
     [notify-send]="libnotify (ags toasts)"
     [watchexec]="watchexec (ags dev loop)"
+    [fc-match]="fontconfig (font fallback resolution)"
     [mpv]="mpv"
     [yt-dlp]="yt-dlp (mpv ytdl_hook backend)"
   )
@@ -718,13 +721,13 @@ validate_dependencies() {
              for b in "${nvim_opt[@]}"; do add_opt "$b"; done ;;
       zsh)   for b in "${zsh_need[@]}"; do add_need "$b"; done
              for b in "${zsh_opt[@]}"; do add_opt "$b"; done ;;
-      hypr)  for b in "${hypr_need[@]}"; do add_need "$b"; done
-             for b in "${hypr_opt[@]}"; do add_opt "$b"; done ;;
-      ags)   for b in "${ags_need[@]}"; do add_need "$b"; done
+      ags)   for b in "${ags_need[@]}" "${font_need[@]}"; do add_need "$b"; done
              for b in "${ags_opt[@]}"; do add_opt "$b"; done ;;
+      hypr)  for b in "${hypr_need[@]}" "${font_need[@]}"; do add_need "$b"; done
+             for b in "${hypr_opt[@]}"; do add_opt "$b"; done ;;
+      kitty) for b in "${kitty_need[@]}" "${font_need[@]}"; do add_need "$b"; done ;;
+      mpv)   for b in "${mpv_need[@]}"; do add_need "$b"; done ;;
       matugen) for b in "${matugen_need[@]}"; do add_need "$b"; done ;;
-      kitty) for b in "${kitty_need[@]}"; do add_need "$b"; done ;;
-      mpv) for b in "${mpv_need[@]}"; do add_need "$b"; done ;;
       fastfetch) for b in "${fastfetch_need[@]}"; do add_need "$b"; done ;;
       atuin) for b in "${atuin_need[@]}"; do add_need "$b"; done ;;
     esac
