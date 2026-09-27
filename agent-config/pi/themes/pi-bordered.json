@@ -1,0 +1,103 @@
+{
+  "$schema": "https://raw.githubusercontent.com/earendil-works/pi/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
+  "name": "pi-bordered",
+  "vars": {
+    "cyan": "#7dcfff",
+    "cyanBright": "#a0e0ff",
+    "cyanDim": "#3d7a99",
+    "magenta": "#bb9af7",
+    "magentaBright": "#c0a0ff",
+    "blue": "#7aa2f7",
+    "green": "#9ece6a",
+    "yellow": "#e0af68",
+    "orange": "#ff9e64",
+    "red": "#f7768e",
+    "pink": "#ff007c",
+    "fg": "#c0caf5",
+    "fgDim": "#a9b1d6",
+    "fgMuted": "#565f89",
+    "bgSubtle": "#1a1b26",
+    "bgSoft": "#16161e",
+    "border": "#5a6488",
+    "borderBright": "#7dcfff",
+    "borderStrong": "#a0e0ff",
+
+    "userMsgBg": "#1f2335",
+    "customMsgBg": "#1e1a2e",
+    "toolPendingBg": "#1a1b26",
+    "toolSuccessBg": "#1a261a",
+    "toolErrorBg": "#261a1a"
+  },
+  "colors": {
+    "accent": "cyan",
+    "border": "border",
+    "borderAccent": "borderStrong",
+    "borderMuted": "border",
+
+    "success": "green",
+    "error": "red",
+    "warning": "yellow",
+    "muted": "fgMuted",
+    "dim": "fgMuted",
+    "text": "",
+    "thinkingText": "fgDim",
+
+    "selectedBg": "bgSubtle",
+    "scrollbarTrack": "fgMuted",
+    "scrollbarThumb": "cyan",
+    "searchMatchBg": "bgSubtle",
+    "searchMatchText": "cyan",
+
+    "userMessageBg": "userMsgBg",
+    "userMessageText": "fg",
+    "customMessageBg": "customMsgBg",
+    "customMessageText": "fgDim",
+    "customMessageLabel": "magenta",
+
+    "toolPendingBg": "toolPendingBg",
+    "toolSuccessBg": "toolSuccessBg",
+    "toolErrorBg": "toolErrorBg",
+    "toolTitle": "cyan",
+    "toolOutput": "fgDim",
+
+    "mdHeading": "orange",
+    "mdLink": "blue",
+    "mdLinkUrl": "fgMuted",
+    "mdCode": "cyan",
+    "mdCodeBlock": "",
+    "mdCodeBlockBorder": "borderBright",
+    "mdQuote": "fgDim",
+    "mdQuoteBorder": "magenta",
+    "mdHr": "border",
+    "mdListBullet": "cyan",
+
+    "toolDiffAdded": "green",
+    "toolDiffRemoved": "red",
+    "toolDiffContext": "fgMuted",
+
+    "syntaxComment": "fgMuted",
+    "syntaxKeyword": "magenta",
+    "syntaxFunction": "blue",
+    "syntaxVariable": "orange",
+    "syntaxString": "green",
+    "syntaxNumber": "magentaBright",
+    "syntaxType": "cyan",
+    "syntaxOperator": "blue",
+    "syntaxPunctuation": "fgMuted",
+
+    "thinkingOff": "fgMuted",
+    "thinkingMinimal": "blue",
+    "thinkingLow": "cyan",
+    "thinkingMedium": "magenta",
+    "thinkingHigh": "orange",
+    "thinkingXhigh": "red",
+    "thinkingMax": "pink",
+
+    "bashMode": "yellow"
+  },
+  "export": {
+    "pageBg": "#0f0f14",
+    "cardBg": "#16161e",
+    "infoBg": "#1a1b26"
+  }
+}

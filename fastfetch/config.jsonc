@@ -1,0 +1,135 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "arch3",
+    "padding": {
+      "top": 2,
+      "right": 4,
+    },
+  },
+  "display": {
+    "separator": " ",
+  },
+  "modules": [
+    {
+      "type": "title",
+      "keyWidth": 14,
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[38;5;147m────────────────────────────────────\u001b[0m",
+    },
+    {
+      "type": "os",
+      "key": " OS ",
+      "keyColor": "35",
+    },
+    {
+      "type": "kernel",
+      "key": " Kernel ",
+      "keyColor": "36",
+    },
+    {
+      "type": "packages",
+      "key": " Packages ",
+      "keyColor": "34",
+    },
+    {
+      "type": "uptime",
+      "key": " Uptime ",
+      "keyColor": "33",
+    },
+    {
+      "type": "datetime",
+      "format": "{1}-{3}-{11}",
+      "key": " Date ",
+      "keyColor": "32",
+    },
+    // HARDWARE
+    {
+      "type": "custom",
+      "format": "\u001b[38;5;51m────────────────────────────────────\u001b[0m",
+    },
+    {
+      "type": "cpu",
+      "key": "󰻠 CPU ",
+      "keyColor": "36",
+      "format": "{name} @ {freq-max}GHz ({cores-physical}C/{cores-logical}T)",
+    },
+    {
+      "type": "cpuusage",
+      "key": "   └ Usage ",
+      "keyColor": "38;5;86",
+    },
+    {
+      "type": "gpu",
+      "key": "󰍛 GPU ",
+      "keyColor": "38;5;81",
+      "format": "{name} {dedicated-used}/{dedicated-total} ({dedicated-percentage-num}%)",
+      "driverSpecific": true,
+    },
+    {
+      "type": "memory",
+      "key": "󰑭 RAM ",
+      "keyColor": "38;5;75",
+      "format": "{used} / {total} ({percentage}%)",
+    },
+    {
+      "type": "swap",
+      "key": "󰓡 Swap ",
+      "keyColor": "38;5;69",
+      "format": "{used} / {total} ({percentage}%)",
+    },
+    {
+      "type": "disk",
+      "key": "󰋊 Disk ",
+      "keyColor": "38;5;44",
+      "format": "{size-used} / {size-total} ({size-percentage}%)",
+    },
+    // ENVIRONMENT
+    {
+      "type": "custom",
+      "format": "\u001b[38;5;171m────────────────────────────────────\u001b[0m",
+    },
+    {
+      "type": "wm",
+      "key": " WM ",
+      "keyColor": "35",
+    },
+    {
+      "type": "shell",
+      "key": " Shell ",
+      "keyColor": "38;5;206",
+    },
+    {
+      "type": "terminal",
+      "key": " Terminal ",
+      "keyColor": "34",
+    },
+    {
+      "type": "terminalfont",
+      "key": " Font ",
+      "keyColor": "33",
+    },
+    {
+      "type": "cursor",
+      "key": " Cursor ",
+      "keyColor": "32",
+    },
+    {
+      "type": "media",
+      "key": "󰝚 Media ",
+      "keyColor": "38;5;214",
+      "format": "{title:-28} | ({artist:-25}) | {progress} {status} ({progress-num})",
+    },
+    {
+      "type": "player",
+      "key": " Player ",
+      "keyColor": "38;5;220",
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[38;5;214m────────────────────────────────────\u001b[0m",
+    },
+  ],
+}

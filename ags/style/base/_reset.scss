@@ -1,0 +1,9 @@
+// Global reset + transparent window backgrounds.
+
+* {
+    all: unset;
+}
+
+window {
+    background: transparent;
+}

@@ -1,0 +1,33 @@
+// Level meter (OSD volume feedback) — thin pill rail matching the slider
+// base: empty track + primary fill, no thumb, no shadow. Flat like every
+// other shell surface (translucency + outline carry separation).
+
+@use "../abstracts/variables" as *;
+
+$level-rail: 6px;
+
+.osd-level {
+    min-height: 18px;
+
+    > trough {
+        min-height: $level-rail;
+        border-radius: 999px;
+        background-color: transparent;
+        border: none;
+        padding: 0;
+    }
+
+    > trough > block {
+        min-height: $level-rail;
+        border-radius: 999px;
+        border: none;
+
+        &.empty {
+            background-color: rgba($on-background, $active-overlay-alpha);
+        }
+
+        &.filled {
+            background-color: $primary;
+        }
+    }
+}

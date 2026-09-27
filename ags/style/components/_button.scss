@@ -1,0 +1,61 @@
+// Buttons: bar triggers, rows, variants.
+
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+button {
+    @include row-button($spacing-sm);
+
+    image {
+        -gtk-icon-size: 16px;
+    }
+}
+
+.btn-flat {
+    background: transparent;
+}
+
+.btn-primary {
+    background-color: $primary;
+    color: $on-primary;
+}
+
+.btn-danger {
+    // Opaque danger fill (not a state overlay — no overlay-alpha applies).
+    background-color: rgba($error, 0.85);
+    color: $on-error;
+}
+
+// Focused workspace — solid primary pill (state, not a surface variant:
+// the row itself lives on the group's `.card`).
+.workspace-active {
+    background-color: $primary;
+    color: $on-primary;
+}
+
+// Persistent selected row (notification history, monitor focus); hover comes
+// from the global `button` rule.
+.row-selected {
+    background-color: rgba($primary, $selected-overlay-alpha);
+    outline: $border-width solid $primary;
+    outline-offset: -$border-width;
+}
+
+// Wallpaper grid tile: uniform full-bleed thumbnail (no padding — the image
+// itself is the surface, clipped to the tile radius). Zero padding beats the
+// global `button` padding; the hover/active/selected overlays still apply.
+.wallpaper-cell {
+    padding: 0;
+    border-radius: $radius-sm;
+}
+
+// Wallpaper carousel filmstrip dot: small circular page indicator.
+.wallpaper-dot {
+    padding: 0;
+    border-radius: 9999px;
+    background-color: rgba($on-background, $faint-overlay-alpha);
+}
+
+.wallpaper-dot-active {
+    background-color: $primary;
+}

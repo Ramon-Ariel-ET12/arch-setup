@@ -1,0 +1,26 @@
+// Entry stylesheet (7-1 structure).
+// Colors come exclusively from the externally generated matugen palette.
+
+@use "abstracts/variables" as *;
+@use "base/reset";
+@use "base/typography";
+@use "base/utilities";
+@use "components/card";
+@use "components/popover";
+@use "components/button";
+@use "components/slider";
+@use "components/levelbar";
+@use "components/list";
+@use "components/tabs";
+@use "components/search";
+
+* {
+    font-family: $font-family;
+}
+
+// Global translucency: every layer-shell window (bar, popup cards, OSD,
+// notification toasts, clipboard, …) composites at this opacity so the
+// wallpaper shows through uniformly.
+window {
+    opacity: $surface-opacity;
+}

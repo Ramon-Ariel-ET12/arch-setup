@@ -1,0 +1,44 @@
+// Shared SCSS mixins.
+
+@use "sass:color";
+@use "./variables" as *;
+
+// Composites a translucent state overlay over an opaque base color. Needed for
+// nodes that carry both a surface background and hover/active states
+// (`button.card`): a CSS background-color replaces rather than stacks, so the
+// blended result is precomputed here.
+@function overlay-on($base, $overlay-color, $alpha) {
+    @return color.change(
+        color.mix(color.change($overlay-color, $alpha: 1), $base, $alpha * 100%),
+        $alpha: 1,
+    );
+}
+
+@mixin card-surface($bg, $border-color: null) {
+    background-color: $bg;
+    border-radius: $radius-md;
+
+    @if $border-color != null {
+        border: $border-width solid $border-color;
+    }
+}
+
+// Hover + active row treatment. Use this when you need the state styling
+// without a fixed padding (e.g. bar trigger buttons that style their own
+// padding inside a selector group).
+@mixin row-states {
+    &:hover {
+        background-color: rgba($on-background, $hover-overlay-alpha);
+    }
+
+    &.active,
+    &:active {
+        background-color: rgba($primary, $active-overlay-alpha);
+    }
+}
+
+@mixin row-button($padding: 8px) {
+    @include row-states;
+    padding: $padding;
+    border-radius: $radius-sm;
+}

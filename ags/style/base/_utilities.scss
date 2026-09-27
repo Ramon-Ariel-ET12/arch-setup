@@ -1,0 +1,86 @@
+// Spacing + sizing utilities — the only layout classes in the shell.
+//
+// Single token-backed scale (0-5); no Tailwind/Bootstrap recreation.
+// 0:0, 1:$spacing-xs(4px), 2:$spacing-sm(8px), 3:$spacing-md(12px),
+// 4:$spacing-lg(16px), 5:$spacing-xl(24px).
+//
+// Box/flow gaps are NOT covered here: GTK4 ignores CSS `gap` on GtkBox —
+// gaps stay as `spacing=` / `rowSpacing=` / `columnSpacing=` props, mapped
+// to the same 0-5 steps by convention at the call site.
+
+@use "../abstracts/variables" as *;
+
+$steps: (
+    0: 0,
+    1: $spacing-xs,
+    2: $spacing-sm,
+    3: $spacing-md,
+    4: $spacing-lg,
+    5: $spacing-xl,
+);
+
+$pad-props: (
+    "p": (padding),
+    "px": (padding-left, padding-right),
+    "py": (padding-top, padding-bottom),
+    "pt": (padding-top),
+    "pb": (padding-bottom),
+    "pl": (padding-left),
+    "pr": (padding-right),
+);
+
+$margin-props: (
+    "m": (margin),
+    "mx": (margin-left, margin-right),
+    "my": (margin-top, margin-bottom),
+    "mt": (margin-top),
+    "mb": (margin-bottom),
+    "ml": (margin-left),
+    "mr": (margin-right),
+);
+
+@each $abbr, $props in $pad-props {
+    @each $n, $v in $steps {
+        .#{$abbr}-#{$n} {
+            @each $p in $props {
+                #{$p}: $v;
+            }
+        }
+    }
+}
+
+@each $abbr, $props in $margin-props {
+    @each $n, $v in $steps {
+        .#{$abbr}-#{$n} {
+            @each $p in $props {
+                #{$p}: $v;
+            }
+        }
+    }
+}
+
+// Canonical one-off sizes (each replaces 3-4 duplicated literals).
+.min-w-0 {
+    min-width: 0;
+}
+
+.min-w-popup {
+    min-width: 240px;
+}
+
+.radius-sm {
+    border-radius: $radius-sm;
+}
+
+.radius-md {
+    border-radius: $radius-md;
+}
+
+.radius-lg {
+    border-radius: $radius-lg;
+}
+
+// Hairline bottom border for grouped section titles (binds).
+.border-b {
+    border-bottom: $border-width solid $outline-variant;
+}

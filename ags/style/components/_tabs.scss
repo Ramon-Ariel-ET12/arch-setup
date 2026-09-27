@@ -1,0 +1,17 @@
+// Tab bars.
+
+@use "../abstracts/variables" as *;
+
+.tabs {
+    // Tabs are `button`s — hover/active overlay comes from the global
+    // `button` rule and padding from px-*/py-* utilities at the call site;
+    // only the dimmed idle + active tint live here.
+    button.tab {
+        opacity: 0.85;
+
+        &.active {
+            background-color: rgba($primary, $active-overlay-alpha);
+            opacity: 1;
+        }
+    }
+}

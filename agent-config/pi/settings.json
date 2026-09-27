@@ -1,0 +1,27 @@
+{
+  "enableInstallTelemetry": false,
+  "lastChangelogVersion": "0.86.1",
+  "theme": "pi-bordered",
+  "packages": [
+    "npm:@raidou/pi-notify",
+    "npm:pi-mcp-adapter",
+    "npm:pi-web-access",
+    "npm:pi-commandcode-provider",
+    "npm:@tintinweb/pi-subagents",
+    "npm:@tintinweb/pi-tasks",
+    "npm:@neilurk12/pi-agent-modes"
+  ],
+  "defaultProvider": "commandcode",
+  "defaultModel": "meta/muse-spark-1.3-contributor",
+  "piNotify": {
+    "enabled": true,
+    "finished": true,
+    "onlyNotifyWhenUnfocused": true,
+    "unfocusedActivityThresholdSecs": 30,
+    "notifyTools": [],
+    "events": {
+      "subagents:completed": "Subagent finished",
+      "subagents:failed": "Subagent failed — check needed"
+    }
+  }
+}

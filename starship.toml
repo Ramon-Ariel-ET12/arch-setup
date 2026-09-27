@@ -1,0 +1,132 @@
+add_newline = true
+
+format = """
+$cmd_duration
+[╭─](#7dcfff) $hostname$username$directory$git_branch$git_status$git_state$git_metrics$python$nodejs$rust$golang$c$cpp$dotnet$lua$java$kotlin$php$ruby$swift$dart
+$character
+"""
+
+[cmd_duration]
+min_time = 1
+format = "[󰔛 $duration](#e0af68)"
+show_milliseconds = true
+
+[hostname]
+ssh_only = false
+format = "[$hostname](#7aa2f7) "
+
+[username]
+show_always = true
+format = "[$user](#c678dd) "
+
+[directory]
+truncation_length = 3
+home_symbol = "~"
+format = "[$path](#98c379) "
+
+# -----------------
+# Git
+# -----------------
+
+[git_branch]
+symbol = " "
+format = "[$symbol$branch](#bb9af7) "
+
+[git_status]
+format = "[$all_status$ahead_behind](#f7768e) "
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?${count}"
+stashed = "\\$${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[git_state]
+format = '[\($state $progress_current/$progress_total\)](#e0af68) '
+
+[git_metrics]
+disabled = false
+format = '[+$added]($added_style)[-$deleted]($deleted_style) '
+added_style = 'green'
+deleted_style = 'red'
+
+# -----------------
+# Languages
+# -----------------
+
+# .NET / C#
+[dotnet]
+symbol = "󰪮 "
+format = "[$symbol$version](#512bd4) "
+
+# Lua
+[lua]
+symbol = " "
+format = "[$symbol$version](#51a0cf) "
+
+# Java
+[java]
+symbol = " "
+format = "[$symbol$version](#f89820) "
+
+# Kotlin
+[kotlin]
+symbol = " "
+format = "[$symbol$version](#c792ea) "
+
+# PHP
+[php]
+symbol = " "
+format = "[$symbol$version](#8892bf) "
+
+# Ruby
+[ruby]
+symbol = " "
+format = "[$symbol$version](#cc342d) "
+
+# Swift
+[swift]
+symbol = " "
+format = "[$symbol$version](#f05138) "
+
+# Dart
+[dart]
+symbol = " "
+format = "[$symbol$version](#0175c2) "
+
+[python]
+symbol = " "
+format = "[$symbol$version](#e0af68) "
+detect_extensions = ["py"]
+
+[nodejs]
+symbol = " "
+format = "[$symbol$version](#8bd5ca) "
+
+[rust]
+symbol = " "
+format = "[$symbol$version](#f7768e) "
+
+[golang]
+symbol = " "
+format = "[$symbol$version](#7dcfff) "
+
+[c]
+symbol = " "
+format = "[$symbol$version](#73daca) "
+
+[cpp]
+symbol = " "
+format = "[$symbol$version](#73daca) "
+
+# -----------------
+# Prompt
+# -----------------
+
+[character]
+success_symbol = "[╰─▶](#7dcfff)"
+error_symbol = "[╰─▶](#f7768e)"

@@ -1,0 +1,26 @@
+// GTK4 popover bubble shared with the network/bt/audio/media popovers.
+//
+// The bubble itself is transparent — the surface comes from the `.card`
+// wrapped around the content in components/Popover.tsx, so popovers reuse
+// the single card default instead of recreating it.
+//
+// The trigger is a plain `button.card`: the whole card lights up via the
+// existing `button.card` hover/active rules in `_card.scss` — no trigger
+// styling of its own lives here.
+
+@use "../abstracts/variables" as *;
+
+popover > box,
+popover.background {
+    background-color: transparent;
+    border: none;
+}
+
+// GTK note: the popover measures its content before async bindings resolve
+// (`With` branches render empty `<box />` first). Without a floor the first
+// measure is zero-height and every bar popover logs
+// `gdk_popup_present: assertion 'height > 0' failed` at startup. 1px passes
+// the assertion without forcing real content tall (min-height only floors).
+popover > box > revealer > .card {
+    min-height: 1px;
+}

@@ -1,0 +1,97 @@
+// Base typography + shared text/state utility classes.
+//
+// The utility classes here (`.subtitle`, `.error-text`, `.text-eyebrow`,
+// `.empty-state`, `.loading-state`) replace the duplicated per-feature
+// copies that previously lived under e.g. `.bluetooth-sub`, `.network-error`.
+//
+// Secondary text uses the solid `$on-surface-variant` tone (`.muted`,
+// `.subtitle`, `.text-eyebrow`) instead of CSS opacity: opacity multiplies
+// with the global window translucency and washed the text out.
+
+@use "../abstracts/variables" as *;
+
+* {
+    font-size: $font-size;
+    font-weight: $font-weight-normal;
+}
+
+.bold {
+    font-weight: $font-weight-bold;
+}
+
+.muted {
+    color: $on-surface-variant;
+}
+
+.text-primary {
+    color: $primary;
+}
+
+// Small caption paired under a primary label.
+.subtitle {
+    font-size: $font-size-caption;
+    color: $on-surface-variant;
+}
+
+.text-body {
+    font-size: $font-size-body;
+}
+
+.text-caption {
+    font-size: $font-size-caption;
+}
+
+.text-micro {
+    font-size: $font-size-micro;
+}
+
+.text-glyph {
+    font-family: "Noto Color Emoji", "Noto Emoji", "Segoe UI Emoji", sans-serif;
+    font-size: $font-size-glyph;
+}
+
+.opacity-strong {
+    opacity: 0.9;
+}
+
+.opacity-mid {
+    opacity: 0.75;
+}
+
+.opacity-faint {
+    opacity: 0.55;
+}
+
+// Pango-rich labels (notification bodies): links in primary + underline.
+.rich-text {
+    a {
+        color: $primary;
+        text-decoration: underline;
+    }
+}
+
+// Error / validation message.
+.error-text {
+    color: $error;
+    font-size: $font-size-caption;
+}
+
+// Section heading style (uppercase + tracked) used by audio panel titles.
+.text-eyebrow {
+    font-size: $font-size-caption;
+    color: $on-surface-variant;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+// Generic empty-state container: padded, centered, with a faint caption.
+// (Centering is applied per child — GTK CSS has no `align-items`.)
+.empty-state {
+    padding: $spacing-lg;
+}
+
+// Generic loading row: spinner + label, used while scanning.
+.loading-state {
+    padding: $spacing-sm;
+    min-width: 0;
+}

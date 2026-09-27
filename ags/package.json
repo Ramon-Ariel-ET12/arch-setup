@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "build": "bash tools/build.sh",
+    "typecheck": "bash tools/typecheck.sh",
+    "types": "bash tools/types.sh",
+    "dev": "bash tools/dev-reload.sh"
+  },
+  "dependencies": {
+    "gnim": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

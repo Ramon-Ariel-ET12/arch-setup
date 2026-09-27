@@ -1,0 +1,112 @@
+// Card — the single surface of the shell (popups, popovers, toasts, OSD,
+// bar modules, history entries). Anatomy: `.card-header` (fixed) /
+// `.card-body` (flex, fills) / footer via the `mt-1` utility.
+// GTK4 has no CSS flex — structure uses Gtk.Box `valign`/`vexpand` (see
+// components/Card.tsx + Popup.tsx + Popover.tsx). Inner spacing via p-*/m-*
+// utilities at the call site. Popover bubbles are transparent; the surface
+// is carried by the `.card` wrapped around the content (see Popover.tsx).
+// No shadows anywhere: layer-shell surfaces stay flat (`window` translucency
+// + outline border carry the separation, not elevation).
+
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+.card {
+    @include card-surface($surface-container, $outline-variant);
+    box-shadow: none;
+    padding: $spacing-xs $spacing-sm;
+}
+
+// Card-buttons nested in a group card (media, tray) act as inner buttons:
+// transparent base so the group reads as one surface. Sits before the
+// `button.card` state rules so hover/active overlays still win on tie.
+.card button.card {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+// Buttons rendered as cards (bar modules): the global `button` hover/active
+// would replace the card background — composite the overlay instead so the
+// surface stays identical to `.card`.
+button.card {
+    &:hover {
+        background-color: overlay-on($surface-container, $on-background, $hover-overlay-alpha);
+    }
+
+    &.active,
+    &:active {
+        background-color: overlay-on($surface-container, $primary, $active-overlay-alpha);
+    }
+}
+
+// Fixed card header strip — never `vexpand`.
+.card-header {
+    min-height: 28px;
+}
+
+.card-title {
+    font-weight: $font-weight-bold;
+    color: $on-background;
+}
+
+// Flexible body with a sensible reserve so scroll viewports don't collapse
+// when empty/scanning (the bluetooth/wifi header-to-bottom bug).
+.card-body {
+    min-height: 80px;
+}
+
+// Bar strip caps (authoritative $bar-height; content truncates, never grows
+// the layer-shell exclusive zone). Bar modules are `.card` surfaces — this
+// only caps heights. GTK4 quirk: padding ≠ height, so height/min-height caps
+// the strip (app.tsx pins defaultHeight); padding alone never constrains it.
+// $bar-chip-height math: $bar-height - $spacing-md.
+.bar {
+    min-height: $bar-height;
+}
+
+.bar-side {
+    min-height: $bar-height - $spacing-md;
+}
+
+// Native Gtk.Calendar (calendar popup): element styling only — day labels,
+// selection. `all: unset` strips the calendar's built-in cell padding, so
+// restore breathing room per day label. Sizing is natural (Popup
+// widthPct/heightPct = null).
+calendar {
+    padding: $spacing-sm;
+
+    > header label.year {
+        color: $on-surface-variant;
+    }
+
+    > grid label {
+        &.day-name {
+            font-size: $font-size-caption;
+            color: $on-surface-variant;
+        }
+
+        &.week-number {
+            font-size: $font-size-micro;
+            opacity: 0.65;
+        }
+
+        &.day-name,
+        &.day-number {
+            padding: $spacing-xs $spacing-sm;
+        }
+
+        &.other-month {
+            opacity: 0.55;
+        }
+
+        &.today {
+            font-weight: $font-weight-bold;
+        }
+
+        &:selected {
+            background-color: $primary;
+            color: $on-primary;
+            border-radius: $radius-sm;
+        }
+    }
+}

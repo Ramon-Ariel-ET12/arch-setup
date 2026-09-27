@@ -1,0 +1,60 @@
+// Design tokens. Colors come exclusively from the matugen palette (see
+// _matugen.scss); the rest are derived from typography + geometry +
+// overlay alphas so the rest of the stylesheet can reference tokens
+// instead of magic numbers.
+
+@forward "./matugen";
+@use "./hyprland" as hypr;
+
+// Typography
+$font-family: "JetBrains Mono", "Fira Code", monospace;
+$font-size: 11px;
+$font-weight-normal: 400;
+$font-weight-bold: 700;
+
+$font-size-micro: 9px;
+$font-size-caption: 10px;
+$font-size-small: 11px;
+$font-size-body: 12px;
+$font-size-large: 13px;
+$font-size-glyph: 20px;
+
+// Geometry — radii/shadow/gaps now derived from Hyprland (hypr.$hypr-*).
+// See style/abstracts/_hyprland.scss (GENERATED via j/getoption on
+// config-reloaded). Colors stay matugen; geometry lives here.
+$radius-sm: hypr.$hypr-rounding * 0.75;
+$radius-md: hypr.$hypr-rounding;
+$radius-lg: hypr.$hypr-rounding * 2;
+
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+
+// Inner padding scale (independent of Hyprland gaps): Hyprland truth is
+// $gaps-in/$gaps-out below; box gaps use `spacing=` props at the call site,
+// mapped to these steps by convention.
+
+// Structural border width — Hyprland truth (general:border_size).
+$border-width: hypr.$hypr-border-size;
+
+// Gaps are Hyprland truth (general:gaps_*).
+$gaps-in: hypr.$hypr-gaps-in;
+$gaps-out: hypr.$hypr-gaps-out;
+
+// Bar height mirrors options.bar.height — single source is options.ts
+// (asserted by bun run typecheck). Hyprland gaps_out is compositor truth
+// for outer gaps; AGS derives overlay offsets reactively via
+// services/hyprland popupTopOffset = bar height + gaps_out.
+$bar-height: 40px;
+
+// Surface translucency (applied to every layer-shell window).
+$surface-opacity: 0.85;
+
+// Overlay alphas used by row/button states across the app.
+$hover-overlay-alpha: 0.08;
+$active-overlay-alpha: 0.25;
+$selected-overlay-alpha: 0.18;
+$faint-overlay-alpha: 0.06;
+$separator-alpha: 0.15;

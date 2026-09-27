@@ -1,0 +1,13 @@
+// Search entries.
+
+@use "../abstracts/variables" as *;
+
+.search-entry {
+    border-radius: $radius-sm;
+    background-color: rgba($on-background, $hover-overlay-alpha);
+    caret-color: $primary;
+
+    &:focus-within {
+        border: $border-width solid $primary;
+    }
+}

@@ -1,0 +1,106 @@
+// Single slider base — pill rail with a thumb that only appears on
+// hover/drag (after the Uiverse pill reference: thin track, filled level,
+// rail doubles in height on hover).
+// Palette: track = on-background at low alpha, level = primary,
+// thumb = on-background. Every widget (volume, seekbar) inherits this; no per-widget overrides.
+//
+// GTK notes:
+// - Node structure is `scale > trough > highlight|fill + slider`. `highlight`
+//   (horizontal) / `fill` (vertical) is the filled level — GTK's equivalent
+//   of the web `box-shadow: -200px 0 0 200px` fill trick (CSS box-shadow
+//   spreading does not paint a level fill here, so don't try it).
+// - Like GtkBox gaps (no CSS `gap`), slider geometry comes from min-height /
+//   min-width, not width/height — GTK CSS has no width/height props.
+
+@use "../abstracts/variables" as *;
+
+// Rail thickness: idle 6px pill, 12px on hover (reference interaction).
+$slider-rail: 6px;
+$slider-rail-hover: $slider-rail * 2;
+$slider-thumb: 14px;
+
+slider,
+scale {
+    min-height: 18px;
+    -gtk-icon-size: 0;
+    color: $primary;
+
+    > trough {
+        min-height: $slider-rail;
+        border-radius: 999px;
+        background-color: rgba($on-background, $active-overlay-alpha);
+        border: none;
+        transition: min-height 100ms ease, background-color 140ms ease;
+    }
+
+    > trough > highlight,
+    > trough > fill {
+        min-height: $slider-rail;
+        border-radius: 999px;
+        background-color: $primary;
+        border: none;
+        transition: min-height 100ms ease;
+    }
+
+    > trough > slider {
+        min-width: $slider-thumb;
+        min-height: $slider-thumb;
+        border-radius: 50%;
+        background-color: $on-background;
+        border: none;
+        opacity: 0;
+        transition: opacity 140ms ease, background-color 140ms ease;
+    }
+
+    &:hover > trough,
+    &:active > trough {
+        min-height: $slider-rail-hover;
+        background-color: rgba($on-background, $separator-alpha);
+    }
+
+    &:hover > trough > highlight,
+    &:hover > trough > fill,
+    &:active > trough > highlight,
+    &:active > trough > fill {
+        min-height: $slider-rail-hover;
+    }
+
+    &:hover > trough > slider,
+    &:active > trough > slider,
+    > trough > slider:active {
+        opacity: 1;
+    }
+
+    &:disabled {
+        opacity: 0.38;
+
+        > trough > slider {
+            opacity: 0;
+        }
+    }
+
+    &:focus:focus-visible > trough {
+        outline: $border-width solid $primary;
+        outline-offset: $spacing-xs;
+    }
+}
+
+scale.vertical {
+    min-height: 18px;
+    min-width: 18px;
+
+    > trough {
+        min-height: 0;
+        min-width: $slider-rail;
+    }
+
+    > trough > highlight,
+    > trough > fill {
+        min-width: $slider-rail;
+    }
+
+    > trough > slider {
+        min-width: $slider-thumb;
+        min-height: $slider-thumb;
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "attribution": {
+    "commit": ""
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.commandcode/hooks/notify.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

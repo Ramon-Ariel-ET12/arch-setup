@@ -1,0 +1,16 @@
+[config]
+theme_mode = "dark"
+prefer = "darkness"
+
+[templates.ags_scss]
+input_path = '~/.config/matugen/templates/ags.scss'
+output_path = '~/.config/ags/style/abstracts/_matugen.scss'
+
+
+[templates.hyprland_lua]
+input_path = '~/.config/matugen/templates/hyprland.lua'
+output_path = '~/.config/hypr/generated/color.lua'
+
+[templates.hyprlock]
+input_path = '~/.config/matugen/templates/hyprlock.conf'
+output_path = '~/.config/hypr/hyprlock.conf'

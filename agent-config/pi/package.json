@@ -1,0 +1,13 @@
+{
+  "name": "pi-extensions",
+  "private": true,
+  "dependencies": {
+    "@neilurk12/pi-agent-modes": "^0.4.2",
+    "@raidou/pi-notify": "^0.7.3",
+    "@tintinweb/pi-subagents": "^0.19.0",
+    "@tintinweb/pi-tasks": "^0.9.0",
+    "pi-commandcode-provider": "^0.7.1",
+    "pi-mcp-adapter": "^2.34.0",
+    "pi-web-access": "^0.30.0"
+  }
+}

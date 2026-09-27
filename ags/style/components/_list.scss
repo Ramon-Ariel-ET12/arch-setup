@@ -1,0 +1,35 @@
+// Lists and separators.
+
+@use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
+
+.list {
+    padding: $spacing-xs 0;
+}
+
+.separator {
+    // Hairline divider (1px floor, not a Hyprland border).
+    min-height: 1px;
+    background-color: rgba($on-background, $separator-alpha);
+    margin: $spacing-xs 0;
+}
+
+.scroll-area {
+    padding-right: $spacing-xs;
+
+    scrollbar {
+        background: transparent;
+
+        slider {
+            background-color: rgba($on-background, $active-overlay-alpha);
+            border-radius: $radius-sm;
+            min-width: $spacing-sm;
+            min-height: $spacing-xl;
+        }
+    }
+}
+
+// Selectable row: shared hover/active treatment + standard padding.
+.row {
+    @include row-button($spacing-sm);
+}

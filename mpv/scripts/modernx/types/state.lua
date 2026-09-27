@@ -1,0 +1,45 @@
+-- modernx/types/state.lua
+-- LuaLS type annotations for the modernx state singleton.
+
+---@class modernx.state
+---@field showtime number|nil
+---@field osc_visible boolean
+---@field anistart number|nil
+---@field anitype 'in'|'out'|nil
+---@field animation number|nil
+---@field initREQ boolean
+---@field enabled boolean
+---@field input_enabled boolean
+---@field showhide_enabled boolean
+---@field last_mouseX number|nil
+---@field last_mouseY number|nil
+---@field mouse_in_window boolean
+---@field mouse_down_counter integer
+---@field active_element integer|nil
+---@field active_event_source string|nil
+---@field fullscreen boolean
+---@field border boolean
+---@field maximized boolean
+---@field mute boolean
+---@field idle boolean
+---@field paused boolean
+---@field tick_timer mp.timer|nil
+---@field tick_last_time number
+---@field hide_timer mp.timer|nil
+---@field message_hide_timer mp.timer|nil
+---@field message_text string|nil
+---@field cache_state table|nil
+---@field tracks_osc { video: table[], audio: table[], sub: table[] }
+---@field tracks_mpv { video: table[], audio: table[], sub: table[] }
+---@field chapter_list table[]
+---@field osc_param { playresy: number, playresx: number, display_aspect: number, unscaled_y: number, areas: table }
+---@field mp_screen_sizeX number|nil
+---@field mp_screen_sizeY number|nil
+---@field forced_title string|nil
+---@field slider_element modernx.element|nil
+---@field rightTC_trem boolean
+---@field fulltime boolean
+---@field lastvisibility string
+---@field highlight_element string
+---@field elements modernx.element[]
+---@field osd mp.osd_overlay
