@@ -1,6 +1,7 @@
 import { Gtk } from "ags/gtk4"
 import type Gdk from "gi://Gdk?version=4.0"
 import { isMainGdk } from "@/services/monitors"
+import { hyprGapsIn } from "@/services/hyprland"
 import { Workspaces } from "./modules/Workspaces"
 import { Clock } from "./modules/Clock"
 import { Tray } from "./modules/Tray"
@@ -29,23 +30,24 @@ export function BarLayout({ gdkmonitor }: BarLayoutProps) {
     const isMain = isMainGdk(gdkmonitor)
 
     return (
-        // Inner gaps follow Hyprland gaps_in truth (j/getoption → $gaps-in);
-        // the bar window itself stays edge-to-edge (TOP|LEFT|RIGHT,
-        // EXCLUSIVE, options.bar.height).
-        <centerbox class="bar px-2">
-            <box $type="start" class="bar-side" hexpand halign={START} spacing={5}>
+        // Inner gaps follow Hyprland gaps_in truth (live accessor); the bar
+        // window floats on gaps_out margins (see widgets/bar/index.tsx) with
+        // no extra inner padding, so edge pills land exactly on gaps_out —
+        // the same grid as tiled window borders.
+        <centerbox class="bar">
+            <box $type="start" class="bar-side" hexpand halign={START} spacing={hyprGapsIn}>
                 <Workspaces />
                 <PopupTriggers />
             </box>
 
-            <box $type="center" class="bar-side" halign={CENTER} spacing={5}>
-                <box visible={isMain} spacing={5}>
+            <box $type="center" class="bar-side" halign={CENTER} spacing={hyprGapsIn}>
+                <box visible={isMain} spacing={hyprGapsIn}>
                     <NotificationsIndicator />
                 </box>
                 <Clock />
             </box>
 
-            <box $type="end" class="bar-side" hexpand halign={END} spacing={5}>
+            <box $type="end" class="bar-side" hexpand halign={END} spacing={hyprGapsIn}>
                 <Audio />
                 <Network />
                 <Bluetooth />

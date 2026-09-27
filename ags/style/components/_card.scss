@@ -5,15 +5,14 @@
 // components/Card.tsx + Popup.tsx + Popover.tsx). Inner spacing via p-*/m-*
 // utilities at the call site. Popover bubbles are transparent; the surface
 // is carried by the `.card` wrapped around the content (see Popover.tsx).
-// No shadows anywhere: layer-shell surfaces stay flat (`window` translucency
-// + outline border carry the separation, not elevation).
+// Separation comes from the compositor: Hyprland border color + shadow
+// (see card-surface in abstracts/_mixins.scss), not custom elevation).
 
 @use "../abstracts/variables" as *;
 @use "../abstracts/mixins" as *;
 
 .card {
-    @include card-surface($surface-container, $outline-variant);
-    box-shadow: none;
+    @include card-surface($surface-container, $border-inactive);
     padding: $spacing-xs $spacing-sm;
 }
 

@@ -21,8 +21,7 @@ popover.menu {
 }
 
 popover.menu.background > contents {
-    @include card-surface($surface-container, $outline-variant);
-    box-shadow: none;
+    @include card-surface($surface-container, $border-inactive);
     padding: $spacing-xs;
 }
 
@@ -30,7 +29,7 @@ popover.menu.background > contents {
 // `contents` so the two read as one shape (see GtkPopover CSS nodes).
 popover.menu > arrow {
     background-color: $surface-container;
-    border: $border-width solid $outline-variant;
+    border: $border-width solid $border-inactive;
 }
 
 popover.menu modelbutton {

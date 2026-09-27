@@ -21,6 +21,14 @@
     @if $border-color != null {
         border: $border-width solid $border-color;
     }
+
+    // Compositor shadow truth (decoration:shadow:*) — no flat exceptions:
+    // surfaces that must stay flat override after the include.
+    @if $shadow-enabled {
+        box-shadow: 0 0 $shadow-range $shadow-color;
+    } @else {
+        box-shadow: none;
+    }
 }
 
 // Hover + active row treatment. Use this when you need the state styling

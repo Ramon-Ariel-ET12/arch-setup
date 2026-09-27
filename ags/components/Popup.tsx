@@ -157,9 +157,9 @@ function setupPopup(
     keymap?: Parameters<typeof attachKeymap>[1],
 ): void {
     const margin = options.popups.margin
-    // Explicitly top-anchored popups clear the bar + Hyprland gaps_out (live
-    // popupTopOffset = bar height + gaps_out); centered (default) and other
-    // popups get a uniform margin on all sides.
+    // Explicitly top-anchored popups clear the floating bar (live
+    // popupTopOffset = bar height + 2 × gaps_out); centered (default) and
+    // other popups get a uniform margin on all sides.
     const topAnchored =
         (anchor & (Astal.WindowAnchor.TOP | Astal.WindowAnchor.BOTTOM)) ===
         Astal.WindowAnchor.TOP

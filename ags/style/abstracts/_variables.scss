@@ -19,9 +19,12 @@ $font-size-body: 12px;
 $font-size-large: 13px;
 $font-size-glyph: 20px;
 
-// Geometry — radii/shadow/gaps now derived from Hyprland (hypr.$hypr-*).
-// See style/abstracts/_hyprland.scss (GENERATED via j/getoption on
-// config-reloaded). Colors stay matugen; geometry lives here.
+// Geometry, border colors, shadow and translucency are Hyprland truth
+// (hypr.$hypr-* — see style/abstracts/_hyprland.scss, GENERATED via
+// j/getoption on config-reloaded). Palette fills stay matugen; the
+// compositor owns outer chrome. Rounding power, backdrop blur and
+// per-leaf animation speeds have no GTK CSS equivalent and stay
+// compositor-side by design.
 $radius-sm: hypr.$hypr-rounding * 0.75;
 $radius-md: hypr.$hypr-rounding;
 $radius-lg: hypr.$hypr-rounding * 2;
@@ -39,18 +42,30 @@ $spacing-xl: 24px;
 // Structural border width — Hyprland truth (general:border_size).
 $border-width: hypr.$hypr-border-size;
 
+// Window-border colors — Hyprland truth (general:col.*_border, first
+// gradient stop). Cards read as windows, so they share the compositor
+// border instead of the matugen outline.
+$border-active: hypr.$hypr-border-active;
+$border-inactive: hypr.$hypr-border-inactive;
+
 // Gaps are Hyprland truth (general:gaps_*).
 $gaps-in: hypr.$hypr-gaps-in;
 $gaps-out: hypr.$hypr-gaps-out;
 
+// Card drop shadow — Hyprland truth (decoration:shadow:*).
+$shadow-enabled: hypr.$hypr-shadow-enabled;
+$shadow-range: hypr.$hypr-shadow-range;
+$shadow-color: hypr.$hypr-shadow-color;
+
 // Bar height mirrors options.bar.height — single source is options.ts
 // (asserted by bun run typecheck). Hyprland gaps_out is compositor truth
 // for outer gaps; AGS derives overlay offsets reactively via
-// services/hyprland popupTopOffset = bar height + gaps_out.
+// services/hyprland popupTopOffset = bar height + 2 × gaps_out.
 $bar-height: 40px;
 
-// Surface translucency (applied to every layer-shell window).
-$surface-opacity: 0.85;
+// Surface translucency — Hyprland truth (decoration:active_opacity);
+// layer-shell surfaces share the focused-window opacity.
+$surface-opacity: hypr.$hypr-active-opacity;
 
 // Overlay alphas used by row/button states across the app.
 $hover-overlay-alpha: 0.08;

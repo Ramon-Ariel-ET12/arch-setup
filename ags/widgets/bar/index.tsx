@@ -3,6 +3,7 @@ import Astal from "gi://Astal?version=4.0"
 import type Gdk from "gi://Gdk?version=4.0"
 import { createBinding, createEffect } from "gnim"
 import { options } from "@/options"
+import { hyprGapsOut } from "@/services/hyprland"
 import { BarLayout } from "./layout"
 
 /**
@@ -26,6 +27,12 @@ function renderBar(gdkmonitor: Gdk.Monitor): Astal.Window {
             exclusivity={Astal.Exclusivity.EXCLUSIVE}
             anchor={TOP | LEFT | RIGHT}
             layer={Astal.Layer.TOP}
+            // Floating strip: outer margins track Hyprland gaps_out live so
+            // the bar sits in the same grid as tiled windows (top margin is
+            // part of the exclusive zone; see popupTopOffset).
+            margin_top={hyprGapsOut}
+            margin_left={hyprGapsOut}
+            margin_right={hyprGapsOut}
             // Height cap: `heightRequest` is only a minimum, so the default
             // size pins the layer surface (GTK re-applies it on every map)
             // and taller content clips instead of growing the bar.

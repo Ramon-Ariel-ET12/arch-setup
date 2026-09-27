@@ -1,5 +1,7 @@
 // Entry stylesheet (7-1 structure).
-// Colors come exclusively from the externally generated matugen palette.
+// Palette fills come from the externally generated matugen palette;
+// outer chrome (border colors, shadow, translucency, radii, gaps)
+// is Hyprland truth via abstracts/_hyprland.scss (GENERATED).
 
 @use "abstracts/variables" as *;
 @use "base/reset";

@@ -68,10 +68,11 @@ export const options = {
         /**
          * Fallback top offset for anchored-top transient surfaces before the
          * Hyprland gaps sync lands. The live value is `popupTopOffset`
-         * (bar height + Hyprland gaps_out) from `services/hyprland`; keep
-         * this in sync as bar.height + gaps_out.
+         * (bar height + 2 × Hyprland gaps_out: top margin + strip + gap
+         * below the floating bar) from `services/hyprland`; keep this in
+         * sync as bar.height + 2 × gaps_out.
          */
-        topOffsetFallback: 58,
+        topOffsetFallback: 76,
     },
 
     bar: {
@@ -107,6 +108,14 @@ export const options = {
         gridInitial: 72,
         /** Cells added per progressive fill tick. */
         gridBatch: 40,
+        /** Types the glyph via virtual keyboard (`--` guards glyphs starting with `-`). */
+        typeCommand: ["wtype", "--"] as string[],
+        /** Close → refocus grace before typing (lets Hyprland refocus the client). */
+        typeDelayMs: 80,
+        /** Copy to clipboard when typing fails (missing `wtype`, seat error). */
+        typeFallbackToClipboard: true,
+        /** Keep the picker open after emoji/symbol insert (Esc/click-outside still closes). */
+        keepOpenOnCharInsert: true,
     },
 
     wallpaper: {

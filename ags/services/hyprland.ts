@@ -38,6 +38,70 @@ export function hyprMessage(message: string): Promise<string> {
 }
 
 /**
+ * Address of the client that should receive typed glyphs (the window
+ * focused before the clipboard picker stole keyboard focus). Layer
+ * surfaces are not regular clients, so `focusedClient` usually still
+ * points at the target while the picker is open. Falls back to the
+ * `activewindow` IPC reply; null when nothing focusable exists.
+ */
+export async function getInsertTarget(): Promise<string | null> {
+    try {
+        const focused = hypr.get_focused_client()
+        const address = focused?.get_address() ?? ""
+        if (address !== "" && address !== "0x0") {
+            debugLog("hyprland", "insert target via binding", address)
+            return address
+        }
+    } catch (err) {
+        debugLog("hyprland", "insert target binding failed", err)
+    }
+    try {
+        const parsed = JSON.parse(await hyprMessage("j/activewindow")) as { address?: unknown }
+        if (typeof parsed.address === "string" && parsed.address !== "" && parsed.address !== "0x0") {
+            debugLog("hyprland", "insert target via ipc", parsed.address)
+            return parsed.address
+        }
+    } catch (err) {
+        debugLog("hyprland", "insert target ipc failed", err)
+    }
+    return null
+}
+
+/**
+ * Refocuses a client captured by `getInsertTarget` so `wtype` keystrokes
+ * land in the target input instead of the picker. Returns false (with a
+ * toast) when the window is gone.
+ */
+export async function focusInsertTarget(rawAddress: string): Promise<boolean> {
+    const address = rawAddress.startsWith("0x") ? rawAddress : `0x${rawAddress}`
+    debugLog("hyprland", "focus insert target", address)
+    // Astal's `Client.focus()` builds a legacy `dispatch focuswindow
+    // address:…` string, which Hyprland 0.56 rejects (Lua shorthand needs
+    // `hl.dsp.focus({ window = "address:…" })`). Shell out via `hyprctl`
+    // in the verified Lua form instead; `execAsync` rejects on error, so
+    // a missing binary or gone window lands in the catch below.
+    // `getInsertTarget` may return the bare hex (Astal strips `0x`), while
+    // the IPC form keeps it — normalize here so both work.
+    try {
+        const out = await execAsync([
+            "hyprctl",
+            "dispatch",
+            `hl.dsp.focus({ window = "address:${address}" })`,
+        ])
+        if (out.trim() !== "ok") {
+            debugLog("hyprland", "focus insert target rejected", out)
+            logWarn("insert target window is gone")
+            return false
+        }
+        return true
+    } catch (err) {
+        debugLog("hyprland", "focus insert target failed", err)
+    }
+    logWarn("insert target window is gone")
+    return false
+}
+
+/**
  * True while the focused client is real fullscreen (games, fullscreen video).
  * Toast-like surfaces hide during it: a layer surface mapping over a captured
  * game cursor breaks pointer input, and the notifications still land in the
@@ -90,10 +154,15 @@ export interface HyprlandOptions {
     gapsIn: number
     gapsOut: number
     borderSize: number
+    borderActive: string
+    borderInactive: string
     rounding: number
     roundingPower: number
     activeOpacity: number
     inactiveOpacity: number
+    shadowEnabled: boolean
+    shadowRange: number
+    shadowColor: string
     blurEnabled: boolean
     blurSize: number
     blurPasses: number
@@ -107,16 +176,22 @@ interface HyprOptionReply {
     float?: number
     str?: string
     bool?: boolean
+    gradient?: string
 }
 
 const FALLBACKS: HyprlandOptions = {
     gapsIn: 5,
     gapsOut: 18,
     borderSize: 2,
+    borderActive: "#99ccfa",
+    borderInactive: "#8c9198",
     rounding: 8,
     roundingPower: 2,
-    activeOpacity: 1,
-    inactiveOpacity: 1,
+    activeOpacity: 0.92,
+    inactiveOpacity: 0.82,
+    shadowEnabled: true,
+    shadowRange: 10,
+    shadowColor: "#1a110f55",
     blurEnabled: true,
     blurSize: 6,
     blurPasses: 2,
@@ -128,16 +203,40 @@ const OPTION_MAP: readonly (readonly [keyof HyprlandOptions, string])[] = [
     ["gapsIn", "general:gaps_in"],
     ["gapsOut", "general:gaps_out"],
     ["borderSize", "general:border_size"],
+    ["borderActive", "general:col.active_border"],
+    ["borderInactive", "general:col.inactive_border"],
     ["rounding", "decoration:rounding"],
     ["roundingPower", "decoration:rounding_power"],
     ["activeOpacity", "decoration:active_opacity"],
     ["inactiveOpacity", "decoration:inactive_opacity"],
+    ["shadowEnabled", "decoration:shadow:enabled"],
+    ["shadowRange", "decoration:shadow:range"],
+    ["shadowColor", "decoration:shadow:color"],
     ["blurEnabled", "decoration:blur:enabled"],
     ["blurSize", "decoration:blur:size"],
     ["blurPasses", "decoration:blur:passes"],
     ["animEnabled", "animations:enabled"],
     ["layout", "general:layout"],
 ] as const
+
+/**
+ * First color of a Hyprland gradient reply as GTK CSS hex.
+ *
+ * Border/shadow colors come back as e.g. `"ffffb4a4 eeffb4a4 45deg"`:
+ * space-separated AARRGGBB tokens plus an angle. GTK CSS has no
+ * gradient-border equivalent, so the leading (opaque) stop is the
+ * expressible part — converted from Hypr's AARRGGBB to `#rrggbbaa`.
+ */
+function gradientFirstToCss(raw: string | undefined): string | null {
+    const token = raw?.trim().split(/\s+/)[0]
+    if (token === undefined || !/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(token)) return null
+    if (token.length === 8) {
+        const alpha = token.slice(0, 2)
+        const rgb = token.slice(2)
+        return `#${rgb}${alpha}`
+    }
+    return `#${token}`
+}
 
 function parseOption(
     raw: string,
@@ -149,7 +248,10 @@ function parseOption(
             if (typeof reply.str === "string") return reply.str
             return null
         }
-        if (key === "blurEnabled" || key === "animEnabled") {
+        if (key === "borderActive" || key === "borderInactive" || key === "shadowColor") {
+            return gradientFirstToCss(reply.gradient)
+        }
+        if (key === "blurEnabled" || key === "animEnabled" || key === "shadowEnabled") {
             if (typeof reply.bool === "boolean") return reply.bool
             if (typeof reply.int === "number") return reply.int !== 0
         }
@@ -202,10 +304,16 @@ export const hyprBlurEnabled: Accessor<boolean> = createComputed(() => hyprlandO
 export const hyprAnimEnabled: Accessor<boolean> = createComputed(() => hyprlandOptions().animEnabled)
 
 export const popupTopOffset: Accessor<number> = createComputed(
-    () => options.bar.height + hyprlandOptions().gapsOut,
+    // Floating bar: top margin (gaps_out) + strip + gap below (gaps_out).
+    () => options.bar.height + 2 * hyprlandOptions().gapsOut,
 )
 
 function hyprlandScssContent(opts: HyprlandOptions): string {
+    // roundingPower / blur size-passes-vibrancy-noise / layout are fetched
+    // (TS truth via accessors) but intentionally not emitted: GTK CSS has
+    // no squircle-power, no backdrop-blur, and no layout concept.
+    // Per-leaf animation speeds (`hyprctl animations`) stay compositor-side
+    // for the same reason — only the enabled flag maps onto Reveal.
     return `/* ========================================================================== */
 /* GENERATED — DO NOT EDIT                                                     */
 /* Sourced from Hyprland via j/getoption on startup + config-reloaded.         */
@@ -215,7 +323,14 @@ function hyprlandScssContent(opts: HyprlandOptions): string {
 $hypr-gaps-in: ${opts.gapsIn}px;
 $hypr-gaps-out: ${opts.gapsOut}px;
 $hypr-border-size: ${opts.borderSize}px;
+$hypr-border-active: ${opts.borderActive};
+$hypr-border-inactive: ${opts.borderInactive};
 $hypr-rounding: ${opts.rounding}px;
+$hypr-active-opacity: ${opts.activeOpacity};
+$hypr-inactive-opacity: ${opts.inactiveOpacity};
+$hypr-shadow-enabled: ${opts.shadowEnabled ? "true" : "false"};
+$hypr-shadow-range: ${opts.shadowRange}px;
+$hypr-shadow-color: ${opts.shadowColor};
 $hypr-anim-enabled: ${opts.animEnabled ? "true" : "false"};
 `
 }
