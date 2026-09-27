@@ -214,6 +214,17 @@ function M.osc_init()
     require('./elements.displays').build(new_element)
     require('./elements.toggles').build(new_element)
 
+    -- image mode replaces the bottom OSC with the sidebar; it registers
+    -- its own click target and renders beside (not inside) this tree.
+    if state.ui.mode == 'image' then
+        local ne = new_element('image_ui', 'button')
+        ne.content = require('./image.ui').render_content
+        ne.eventresponder['mbtn_left_up'] = function()
+            local x, y = require('./utils.geometry').get_virt_mouse_pos()
+            require('./image.sidebar').click(x, y)
+        end
+    end
+
     -- default layout
     require('./core.layout').layouts()
 

@@ -22,7 +22,7 @@ M.user_opts = {
                                     -- move between ticks to make the OSC show up
     iamaprogrammer = false,         -- use native mpv values and disable OSC
                                     -- internal track list management
-    font = 'mpv-osd-symbols',       -- default osc font
+    font = 'JetBrainsMono Nerd Font Mono',       -- default osc font
     seekbarhandlesize = 1.0,        -- size ratio of the slider handle, range 0 ~ 1
     seekrange = true,               -- show seekrange overlay
     seekrangealpha = 64,            -- transparency of seekranges
@@ -100,6 +100,8 @@ M.language = {
 M.texts = M.language[M.user_opts.language] or M.language['eng']
 
 -- icons (utf-8 bytes)
+-- NB: byte escapes are Nerd Font codepoints; keep in sync with the
+-- `font` user option above (fc-match "JetBrainsMono Nerd Font Mono").
 M.icons = {
     previous = '\239\142\181',
     next = '\239\142\180',
@@ -113,7 +115,11 @@ M.icons = {
     sub = '\239\143\147',
     minimize = '\239\133\172',
     fullscreen = '\239\133\173',
-    info = '',
+    -- image mode (Nerd Font; see note above)
+    info = '\239\132\169',       -- nf-fa-info_circle
+    picture = '\239\128\190',    -- nf-fa-picture_o
+    close = '\239\128\141',      -- nf-fa-close
+    folder = '\239\129\187',     -- nf-fa-folder_open
 }
 
 -- icons for jump button depending on jumpamount
@@ -125,20 +131,22 @@ M.jumpicons = {
 }
 
 -- ASS style fragments (built with the user-configured font name)
+-- NB: control styles must use the same Nerd Font as `font` above,
+-- otherwise the nf-* icons render as tofu.
 M.osc_styles = {
     TransBg = '{\\blur100\\bord150\\1c&H000000&\\3c&H000000&}',
     SeekbarBg = '{\\blur0\\bord0\\1c&HFFFFFF&}',
     SeekbarFg = '{\\blur1\\bord1\\1c&HE39C42&}',
     VolumebarBg = '{\\blur0\\bord0\\1c&H999999&}',
     VolumebarFg = '{\\blur1\\bord1\\1c&HFFFFFF&}',
-    Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs36\\fnmaterial-design-iconic-font}',
-    Ctrl2 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnmaterial-design-iconic-font}',
-    Ctrl2Flip = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnmaterial-design-iconic-font\\fry180',
-    Ctrl3 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnmaterial-design-iconic-font}',
+    Ctrl1 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs36\\fnJetBrainsMono Nerd Font Mono}',
+    Ctrl2 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnJetBrainsMono Nerd Font Mono}',
+    Ctrl2Flip = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnJetBrainsMono Nerd Font Mono\\fry180',
+    Ctrl3 = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&HFFFFFF&\\fs24\\fnJetBrainsMono Nerd Font Mono}',
     Time = '{\\blur0\\bord0\\1c&HFFFFFF&\\3c&H000000&\\fs17\\fn' .. M.user_opts.font .. '}',
     Tooltip = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H000000&\\fs18\\fn' .. M.user_opts.font .. '}',
     Title = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs38\\q2\\fn' .. M.user_opts.font .. '}',
-    WinCtrl = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs20\\fnmpv-osd-symbols}',
+    WinCtrl = '{\\blur1\\bord0.5\\1c&HFFFFFF&\\3c&H0\\fs20\\fn' .. M.user_opts.font .. '}',
     elementDown = '{\\1c&H999999&}',
     elementHighlight = '{\\blur1\\bord1\\1c&HFFC033&}',
 }

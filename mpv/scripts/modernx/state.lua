@@ -74,6 +74,12 @@ M.fulltime = false
 M.lastvisibility = 'auto'
 M.highlight_element = 'cy_audio'
 
+-- application state: what media is loaded and which UI mode is active.
+-- media.* is refreshed from core/media.lua on file load; ui.mode is
+-- driven by ui/manager.lua ('video' | 'image').
+M.media = { path = nil, type = 'unknown', index = nil, count = 0 }
+M.ui = { mode = 'video' }
+
 -- elements registry (rebuilt on every osc_init)
 M.elements = {}
 

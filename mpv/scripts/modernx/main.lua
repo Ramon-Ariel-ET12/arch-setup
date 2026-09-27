@@ -101,6 +101,20 @@ validate_user_opts()
 tick.update_duration_watch()
 
 -- ============================================================
+-- 4b. Application layer: shared services + UI mode routing.
+-- Thin by design: media detection lives in core/media.lua,
+-- mode switching in ui/manager.lua, feature UI in video/ + image/.
+-- ============================================================
+local manager = require './ui.manager'
+manager.register('video', require('./video.ui'))
+manager.register('image', require('./image.ui'))
+
+local function on_media_changed()
+    manager.update_media_state()
+    tick.request_init()
+end
+
+-- ============================================================
 -- 5. Automatically disable mpv's built-in OSC
 -- ============================================================
 local builtin_osc_enabled = mp.get_property_native('osc')
@@ -113,8 +127,13 @@ end
 -- ============================================================
 mp.register_event('shutdown', function() end) -- no-op
 mp.register_event('start-file', tick.request_init)
-mp.observe_property('track-list', nil, tick.request_init)
-mp.observe_property('playlist', nil, tick.request_init)
+mp.register_event('file-loaded', on_media_changed)
+mp.register_event('end-file', on_media_changed)
+mp.observe_property('track-list', nil, function() on_media_changed() end)
+mp.observe_property('playlist', nil, function()
+    require('./image.navigation').sync()
+    on_media_changed()
+end)
 mp.observe_property('chapter-list', 'native', function(_, list)
     list = list or {}
     table.sort(list, function(a, b) return a.time < b.time end)
@@ -162,6 +181,12 @@ mp.register_script_message('osc-tracklist', function(dur)
 end)
 mp.register_script_message('osc-visibility', visibility.visibility_mode)
 mp.register_script_message('thumbfast-info', thumbfast_m.handle)
+-- image mode: input.conf maps `i` here so the panel works even when
+-- mpv's builtin stats script claims the `i` key for itself.
+mp.register_script_message('image-info-toggle', function()
+    require('./image.ui').toggle_info()
+    tick.request_tick()
+end)
 
 -- mouse showhide keymaps
 mp.set_key_bindings({
