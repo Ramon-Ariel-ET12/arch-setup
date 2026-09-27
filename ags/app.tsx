@@ -14,6 +14,7 @@ import ClipboardPopup from "./widgets/clipboard"
 import CalendarPopup from "./widgets/calendar"
 import Osd from "./widgets/osd"
 import { start as startWallpaperManager } from "./services/wallpaper"
+import { startWeather } from "./services/weather"
 import { installErrorReporting, logError } from "@/lib/notify"
 import { debugLog } from "@/lib/log"
 
@@ -60,6 +61,8 @@ function main(): void {
 
     debugLog("app", "wallpaper start")
     startWallpaperManager()
+    debugLog("app", "weather start")
+    startWeather()
 
     debugLog("app", "Bars init")
     Bars()

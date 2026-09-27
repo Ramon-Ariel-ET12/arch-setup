@@ -82,6 +82,14 @@ export const options = {
         height: 40,
     },
 
+    weather: {
+        /** Open-Meteo forecast coordinates (no API key needed). */
+        latitude: -34.6037,
+        longitude: -58.3816,
+        /** Minutes between forecast refreshes. */
+        refreshMinutes: 10,
+    },
+
     anim: {
         /** Default in-app transition duration (components/Reveal.tsx). */
         duration: 160,
