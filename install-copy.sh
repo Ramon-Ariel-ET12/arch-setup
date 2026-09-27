@@ -587,51 +587,125 @@ select_target_interactive() {
 }
 
 # --- dependency validation guard ---
+# Block the install when a binary the selected configs actually execute is
+# missing (grouped pacman/yay advice); optional deps only warn.
+# In --check mode everything is reported but never blocks; --ignore-deps
+# skips validation entirely.
 validate_dependencies() {
   [ "$IGNORE_DEPS" = 1 ] && { echo -e "  ${DIM}· dependency validation skipped (--ignore-deps)${RESET}"; return; }
 
-  local mod
-  local -a need=() opt=() missing=() soft=()
-  local -A seen_need seen_opt
+  local mod b p pkg
+  local -a need=() opt=() missing=() soft=() repo_pkgs=() aur_pkgs=()
+  local -A seen_need seen_opt seen_pkg
 
+  # Required binaries per module, derived from what the configs actually exec:
+  # - nvim: lazy.nvim bootstrap shells out to git; fzf-lua backends need rg/fd/fzf
+  # - zsh: .zshrc runs fastfetch bare and plugins.sh evals the
+  #   starship/zoxide/atuin inits (a missing one errors on every new shell);
+  #   the autosuggestions/syntax-highlighting files are sourced unconditionally
+  # - hypr: autostart entries, media/brightness binds, the grim/satty/wl-copy
+  #   screenshot flow, ags toggle binds, kitty terminal, matugen palette
+  #   (general.lua requires generated/color.lua)
+  # - ags: build/typecheck (bun, sass), wallpaper daemon (awww), palette
+  #   (matugen), clipboard service (cclip)
+  # - mpv: mpv.conf points ytdl_hook at yt-dlp
   local nvim_need=(nvim git rg fd fzf)
-  local nvim_opt=(rustc cargo tree-sitter dotnet node bun npm)
+  local nvim_opt=(rustc cargo tree-sitter dotnet node bun npm gh)
 
-  local zsh_need=(zsh git)
-  local zsh_opt=(zoxide starship atuin fastfetch eza bat fd rg fzf)
+  local zsh_need=(zsh git starship zoxide atuin fastfetch)
+  local zsh_opt=(eza bat rg fzf)
 
-  local hypr_need=(Hyprland hyprctl hypridle hyprlock hyprpm kitty ags matugen)
-  local hypr_opt=(cclipd awww grim slurp satty gnome-keyring-daemon polkit-gnome-authentication-agent-1 brave-origin hyprsplit)
+  local hypr_need=(Hyprland hyprctl hypridle hyprlock kitty ags matugen cclip cclipd grim satty wl-copy wpctl playerctl)
+  local hypr_opt=(hyprpm brightnessctl nemo gnome-keyring-daemon brave-origin)
 
-  local ags_need=(ags bun sass)
-  local ags_opt=(node matugen)
+  local ags_need=(ags bun sass awww awww-daemon matugen cclip)
+  local ags_opt=(node wl-copy notify-send watchexec)
 
   local matugen_need=(matugen)
   local kitty_need=(kitty)
-  local mpv_need=(mpv)
+  local mpv_need=(mpv yt-dlp)
   local fastfetch_need=(fastfetch)
   local atuin_need=(atuin)
 
+  # Binary -> Arch package (binaries not listed install under their own name).
+  local -A PKG_OF=(
+    [Hyprland]=hyprland [hyprctl]=hyprland [hyprpm]=hyprpm
+    [nvim]=neovim [rg]=ripgrep [gh]=github-cli
+    [rustc]=rustup [cargo]=rustup [tree-sitter]=tree-sitter-cli
+    [dotnet]=dotnet-sdk [sass]=dart-sass [node]=nodejs
+    [ags]=aylurs-gtk-shell-git [cclip]=cclip [cclipd]=cclip
+    [brave-origin]=brave-origin-bin
+    [awww]=awww [awww-daemon]=awww
+    [wl-copy]=wl-clipboard [wpctl]=wireplumber
+    [notify-send]=libnotify [yt-dlp]=yt-dlp
+  )
+  # Packages that live in the AUR (installed with yay, not pacman).
+  local -A AUR_PKG=(
+    [aylurs-gtk-shell-git]=1 [cclip]=1 [brave-origin-bin]=1
+  )
+
+  # zsh plugin files sourced unconditionally by scripts/plugins.sh
+  # (command -v cannot see them, so they are checked as paths; the key
+  # doubles as the Arch package name).
+  local -A ZSH_PLUGIN=(
+    [zsh-autosuggestions]=/usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+    [zsh-syntax-highlighting]=/usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+  )
+  # The polkit agent is exec'd by absolute path in modules/autostart.lua
+  # (also invisible to command -v), so it is only an optional check.
+  local POLKIT_AGENT=/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+
+  # Human-readable reason shown next to each missing binary.
   local -A reason=(
     [nvim]="neovim (editor)"
     [git]="git (lazy.nvim bootstrap + git tooling)"
-    [rg]="ripgrep"
-    [fd]="fd"
-    [fzf]="fzf"
-    [zsh]="zsh"
-    [Hyprland]="hyprland"
-    [hyprctl]="hyprland (hyprctl)"
-    [hypridle]="hypridle"
-    [hyprlock]="hyprlock"
-    [hyprpm]="hyprpm"
-    [kitty]="kitty"
-    [ags]="ags (astal shell)"
-    [matugen]="matugen (Material You theming)"
+    [rg]="ripgrep (fzf-lua backend)"
+    [fd]="fd (fzf-lua backend)"
+    [fzf]="fzf (picker backend)"
+    [gh]="github-cli (octo.nvim)"
+    [rustc]="rustup (rust LSP toolchain)"
+    [cargo]="rustup (rust LSP toolchain)"
+    [tree-sitter]="tree-sitter-cli (parser installs)"
+    [dotnet]="dotnet-sdk (.NET LSP)"
+    [node]="nodejs (optional tooling)"
     [bun]="bun (ags build tool)"
-    [sass]="sass (ags stylesheet compiler)"
+    [npm]="npm (optional tooling)"
+    [zsh]="zsh"
+    [starship]="starship (prompt, eval'd by plugins.sh)"
+    [zoxide]="zoxide (eval'd by plugins.sh)"
+    [atuin]="atuin (eval'd by plugins.sh)"
+    [fastfetch]="fastfetch (runs on every shell start)"
+    [eza]="eza (ls aliases)"
+    [bat]="bat (cat alias)"
+    [zsh-autosuggestions]="zsh-autosuggestions (sourced by plugins.sh)"
+    [zsh-syntax-highlighting]="zsh-syntax-highlighting (sourced by plugins.sh)"
+    [Hyprland]="hyprland (compositor)"
+    [hyprctl]="hyprland (hyprctl)"
+    [hypridle]="hypridle (idle daemon, autostarted)"
+    [hyprlock]="hyprlock (lock screen)"
+    [hyprpm]="hyprpm (plugin manager, autostart reload)"
+    [kitty]="kitty (default terminal)"
+    [ags]="aylurs-gtk-shell-git (desktop shell)"
+    [matugen]="matugen (Material You theming)"
+    [cclip]="cclip (clipboard history)"
+    [cclipd]="cclip (clipboard daemon, autostarted)"
+    [grim]="grim (screenshot flow)"
+    [satty]="satty (screenshot annotator)"
+    [wl-copy]="wl-clipboard (screenshot + emoji copy)"
+    [wpctl]="wireplumber (volume binds)"
+    [playerctl]="playerctl (media binds + idle lock)"
+    [brightnessctl]="brightnessctl (brightness binds)"
+    [nemo]="nemo (file manager)"
+    [gnome-keyring-daemon]="gnome-keyring (secrets daemon, autostarted)"
+    [polkit-gnome-authentication-agent-1]="polkit-gnome (auth agent, autostarted)"
+    [brave-origin]="brave-origin-bin (browser, autostarted)"
+    [sass]="dart-sass (ags stylesheet compiler)"
+    [awww]="awww (wallpaper painter)"
+    [awww-daemon]="awww (wallpaper daemon)"
+    [notify-send]="libnotify (ags toasts)"
+    [watchexec]="watchexec (ags dev loop)"
     [mpv]="mpv"
-    [fastfetch]="fastfetch"
-    [atuin]="atuin"
+    [yt-dlp]="yt-dlp (mpv ytdl_hook backend)"
   )
 
   add_need() { local b="$1"; if [[ -z "${seen_need[$b]:-}" ]]; then seen_need[$b]=1; need+=("$b"); fi; }
@@ -648,21 +722,31 @@ validate_dependencies() {
              for b in "${hypr_opt[@]}"; do add_opt "$b"; done ;;
       ags)   for b in "${ags_need[@]}"; do add_need "$b"; done
              for b in "${ags_opt[@]}"; do add_opt "$b"; done ;;
-      matugen) add_need matugen ;;
-      kitty) add_need kitty ;;
-      mpv) add_need mpv ;;
-      fastfetch) add_need fastfetch ;;
-      atuin) add_need atuin ;;
+      matugen) for b in "${matugen_need[@]}"; do add_need "$b"; done ;;
+      kitty) for b in "${kitty_need[@]}"; do add_need "$b"; done ;;
+      mpv) for b in "${mpv_need[@]}"; do add_need "$b"; done ;;
+      fastfetch) for b in "${fastfetch_need[@]}"; do add_need "$b"; done ;;
+      atuin) for b in "${atuin_need[@]}"; do add_need "$b"; done ;;
     esac
   done
 
-  local b
   for b in "${need[@]}"; do
     if ! command -v "$b" >/dev/null 2>&1; then missing+=("$b"); fi
   done
   for b in "${opt[@]}"; do
     if ! command -v "$b" >/dev/null 2>&1; then soft+=("$b"); fi
   done
+
+  # Path-checked deps (invisible to command -v): zsh plugin files are
+  # required, the polkit agent path is optional.
+  if [[ " $* " == *" zsh "* ]]; then
+    for p in "${!ZSH_PLUGIN[@]}"; do
+      [ -f "${ZSH_PLUGIN[$p]}" ] || missing+=("$p")
+    done
+  fi
+  if [[ " $* " == *" hypr "* ]]; then
+    [ -x "$POLKIT_AGENT" ] || soft+=("polkit-gnome-authentication-agent-1")
+  fi
 
   if ((${#missing[@]})); then
     echo
@@ -673,10 +757,27 @@ validate_dependencies() {
     if [ "$CHECK" = 1 ]; then
       echo -e "  ${DIM}(dry-run: reported only, not blocking)${RESET}"
     else
-      echo -e "  ${DIM}Install them, e.g.:${RESET}"
-      echo -e "    ${CYAN}sudo pacman -S $(echo "${missing[*]}" | tr ' ' ' ')${RESET}"
-      if [[ " ${missing[*]} " == *" Hyprland "* ]]; then
-        echo -e "  ${DIM}or: sudo pacman -S hyprland kitty hypridle hyprlock hyprpm ags matugen${RESET}"
+      # Group missing binaries by Arch package and source (repo vs AUR).
+      for b in "${missing[@]}"; do
+        pkg="${PKG_OF[$b]:-$b}"
+        if [[ -z "${seen_pkg[$pkg]:-}" ]]; then
+          seen_pkg[$pkg]=1
+          if [[ -n "${AUR_PKG[$pkg]:-}" ]]; then aur_pkgs+=("$pkg"); else repo_pkgs+=("$pkg"); fi
+        fi
+      done
+      if ((${#repo_pkgs[@]})); then
+        echo -e "  ${DIM}Install repo packages:${RESET}"
+        echo -e "    ${CYAN}sudo pacman -S ${repo_pkgs[*]}${RESET}"
+      fi
+      if ((${#aur_pkgs[@]})); then
+        if command -v yay >/dev/null 2>&1; then
+          echo -e "  ${DIM}Install AUR packages:${RESET}"
+          echo -e "    ${CYAN}yay -S ${aur_pkgs[*]}${RESET}"
+        else
+          echo -e "  ${RED}✗${RESET} ${YELLOW}yay${RESET} is required for AUR packages (${aur_pkgs[*]}) but is not installed."
+          echo -e "  ${DIM}Install yay first (https://github.com/Jguer/yay#installation), then:${RESET}"
+          echo -e "    ${CYAN}yay -S ${aur_pkgs[*]}${RESET}"
+        fi
       fi
       echo -e "  ${DIM}Re-run with --ignore-deps to force installation anyway.${RESET}"
       exit 1
@@ -689,20 +790,37 @@ validate_dependencies() {
     echo -e "  ${DIM}${soft[*]}${RESET}"
   fi
 
+  # Config-chain validation: files the dotfiles require at load time.
+  local fail=0
   if [[ " $* " == *" nvim "* ]]; then
-    local init="$REPO_ROOT/nvim/init.lua" lazy="$REPO_ROOT/nvim/lua/config/lazy.lua"
-    local ok=1
-    [ -f "$init" ] || ok=0
-    [ -f "$lazy" ] || ok=0
-    if [ "$ok" = 1 ]; then
+    if [ -f "$REPO_ROOT/nvim/init.lua" ] && [ -f "$REPO_ROOT/nvim/lua/config/lazy.lua" ]; then
       echo -e "  ${GREEN}✓${RESET} nvim config chain resolves (init.lua → config.lazy)"
     else
       echo -e "  ${YELLOW}⚠${RESET} nvim config chain broken (missing init.lua or lua/config/lazy.lua)" >&2
-      if [ "$CHECK" != 1 ]; then
-        echo -e "  ${DIM}Re-run with --ignore-deps to force.${RESET}"
-        exit 1
-      fi
+      fail=1
     fi
+  fi
+  if [[ " $* " == *" hypr "* ]]; then
+    if [ -f "$REPO_ROOT/hypr/generated/color.lua" ]; then
+      echo -e "  ${GREEN}✓${RESET} hypr theme output present (generated/color.lua)"
+    else
+      echo -e "  ${RED}✗${RESET} hypr/generated/color.lua missing — general.lua requires it at load." >&2
+      echo -e "  ${DIM}Generate it with: matugen image ~/Pictures/Wallpapers/<wallpaper>${RESET}" >&2
+      fail=1
+    fi
+  fi
+  if [[ " $* " == *" ags "* ]]; then
+    if [ -f "$REPO_ROOT/ags/style/abstracts/_matugen.scss" ]; then
+      echo -e "  ${GREEN}✓${RESET} ags palette present (style/abstracts/_matugen.scss)"
+    else
+      echo -e "  ${RED}✗${RESET} ags/style/abstracts/_matugen.scss missing — sass compile fails without it." >&2
+      echo -e "  ${DIM}Generate it with: matugen image ~/Pictures/Wallpapers/<wallpaper>${RESET}" >&2
+      fail=1
+    fi
+  fi
+  if [ "$fail" = 1 ] && [ "$CHECK" != 1 ]; then
+    echo -e "  ${DIM}Re-run with --ignore-deps to force.${RESET}"
+    exit 1
   fi
 }
 
