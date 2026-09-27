@@ -36,6 +36,7 @@ export const icons = {
         low: "audio-volume-low-symbolic",
         muted: "audio-volume-muted-symbolic",
         mic: "audio-input-microphone-symbolic",
+        micMuted: "microphone-sensitivity-muted-symbolic",
     },
     network: {
         wired: "network-wired-symbolic",
@@ -78,7 +79,7 @@ export function speakerIcon(volume: number, muted: boolean): string {
 
 /** Mic mute → microphone icon. */
 export function micIcon(_volume: number, muted: boolean): string {
-    return muted ? icons.audio.muted : icons.audio.mic
+    return muted ? icons.audio.micMuted : icons.audio.mic
 }
 
 /** Wi-Fi signal strength (0–100) → signal icon. */
