@@ -2,12 +2,10 @@ import { Gtk } from "ags/gtk4"
 import Pango from "gi://Pango"
 import AstalNetwork from "gi://AstalNetwork?version=0.1"
 import { For, With, createBinding, createComputed, createEffect, createState, type Accessor } from "gnim"
-import { Popover, Collapsible, Button } from "@/components"
+import { Collapsible, Button } from "@/components"
 import { ScrollArea } from "@/components/ScrollArea"
 import { EmptyState, ErrorLabel, LoadingRow } from "@/lib/helpers/empty"
 import { icons, signalIcon } from "@/lib/icons"
-import { BAR_POPOVER_FALLBACK } from "@/lib/ui"
-import { popoverSize } from "@/services/monitors"
 import { useRowAction } from "@/lib/row-action"
 import { callGirAsync } from "@/lib/helpers/gir"
 
@@ -184,7 +182,15 @@ function WifiPanel({ wifi }: { wifi: AstalWifi }) {
                         ) : (
                             <box class="mb-1" orientation={Gtk.Orientation.VERTICAL} spacing={6}>
                                 <box class="p-2" spacing={10}>
-                                    <image iconName={connectedIcon} iconSize={Gtk.IconSize.LARGE} />
+                                    <button
+                                        class="card"
+                                        onClicked={() => {
+                                            wifi.enabled = !wifi.enabled
+                                        }}
+                                        tooltipText="Turn Wi-Fi off"
+                                    >
+                                        <image iconName={connectedIcon} iconSize={Gtk.IconSize.LARGE} />
+                                    </button>
                                     <box orientation={Gtk.Orientation.VERTICAL} hexpand>
                                         <label label={ap.get_ssid() ?? "Connected"} />
                                         <label label="Connected" class="subtitle" />
@@ -279,7 +285,7 @@ function WiredPanel({ wired }: { wired: AstalWired }) {
 }
 
 /** Bar trigger icon; reflects wifi/wired/offline state. */
-function NetworkTrigger() {
+export function NetworkTrigger() {
     const wifi = wifiDevice
 
     if (wifi === null) {
@@ -315,43 +321,77 @@ function NetworkTrigger() {
     )
 
     return (
-        <box tooltipText={ssid((s) => s || "Wi-Fi")}>
+        <box spacing={4} tooltipText={ssid((s) => s || "Wi-Fi")}>
             <image iconName={icon} />
+            <label
+                label={ssid((s) => s || "")}
+                visible={ssid((s) => (s ?? "") !== "")}
+                maxWidthChars={12}
+                ellipsize={Pango.EllipsizeMode.END}
+            />
         </box>
     )
 }
 
-export function Network() {
+/** Trigger a Wi-Fi rescan (no-op when wifi is absent or disabled). */
+export function refreshWifi() {
+    if (wifiDevice !== null && wifiDevice.enabled) wifiDevice.scan()
+}
+
+/** Wi-Fi radio header shown when the radio is off (re-enable here). */
+function WifiOffHeader({ wifi, enabled }: { wifi: AstalWifi; enabled: Accessor<boolean> }) {
+    return (
+        <box class="p-2" spacing={10}>
+            <button
+                class="card"
+                onClicked={() => {
+                    wifi.enabled = true
+                }}
+                tooltipText="Turn Wi-Fi on"
+            >
+                <image iconName={icons.network.offline} iconSize={Gtk.IconSize.LARGE} />
+            </button>
+            <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                <label label="Wi-Fi" halign={Gtk.Align.START} />
+                <label label="Off" class="subtitle" halign={Gtk.Align.START} />
+            </box>
+            <switch
+                active={enabled}
+                valign={Gtk.Align.CENTER}
+                onNotifyActive={(self: Gtk.Switch) => {
+                    if (self.active !== enabled.peek()) wifi.enabled = self.active
+                }}
+            />
+        </box>
+    )
+}
+
+/** Wifi / wired panel body for embedding in a popover. */
+export function NetworkPanel() {
     const wifi = wifiDevice
     const wired = wiredDevice
-    const { width } = popoverSize(20, 40, BAR_POPOVER_FALLBACK)
     const wifiEnabled: Accessor<boolean> =
         wifi === null ? createState(false)[0] : createBinding(wifi, "enabled")
 
     return (
-        <Popover
-            trigger={<NetworkTrigger />}
-            onOpen={() => {
-                if (wifi !== null && wifi.enabled) wifi.scan()
-            }}
-            content={
-                <box widthRequest={width}>
-                    <With value={wifiEnabled}>
-                        {(wifiOn) =>
-                            wifiOn && wifi !== null ? (
-                                <WifiPanel wifi={wifi} />
-                            ) : wired === null ? (
-                                <EmptyState
-                                    icon={icons.network.offline}
-                                    label="No network connection"
-                                />
-                            ) : (
-                                <WiredPanel wired={wired} />
-                            )
-                        }
-                    </With>
-                </box>
+        <With value={wifiEnabled}>
+            {(wifiOn) =>
+                wifiOn && wifi !== null ? (
+                    <WifiPanel wifi={wifi} />
+                ) : (
+                    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+                        {wifi !== null && <WifiOffHeader wifi={wifi} enabled={wifiEnabled} />}
+                        {wired === null ? (
+                            <EmptyState
+                                icon={icons.network.offline}
+                                label="No network connection"
+                            />
+                        ) : (
+                            <WiredPanel wired={wired} />
+                        )}
+                    </box>
+                )
             }
-        />
+        </With>
     )
 }

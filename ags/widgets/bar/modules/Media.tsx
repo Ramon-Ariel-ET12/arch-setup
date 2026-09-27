@@ -129,6 +129,7 @@ function MediaPopoverContent({ player }: { player: Mpris.Player }) {
 
     const art = createComputed(() => coverArt() || artUrl() || "")
     const source = createComputed(() => identity() || entry() || "")
+    const playerVolume = createBinding(player, "volume")
 
     return (
         <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
@@ -193,10 +194,15 @@ function MediaPopoverContent({ player }: { player: Mpris.Player }) {
                 <label label="Volume" class="subtitle" />
                 <slider
                     hexpand
-                    value={createBinding(player, "volume")}
+                    value={playerVolume}
                     min={0}
                     max={1}
-                    onNotifyValue={(self: Astal.Slider) => (player.volume = self.value)}
+                    onNotifyValue={(self: Astal.Slider) => {
+                        // Same echo guard as the seekbar above: binding updates
+                        // must not write back into the player.
+                        if (Math.abs(self.value - playerVolume.peek()) < 0.001) return
+                        player.volume = self.value
+                    }}
                 />
             </box>
         </box>

@@ -6,9 +6,8 @@ import { Workspaces } from "./modules/Workspaces"
 import { Clock } from "./modules/Clock"
 import { Tray } from "./modules/Tray"
 import { Battery } from "./modules/Battery"
-import { Network } from "./modules/Network"
 import { Audio } from "./modules/Audio"
-import { Bluetooth } from "./modules/Bluetooth"
+import { Connectivity } from "./modules/Connectivity"
 import { Media } from "./modules/Media"
 import { NotificationsIndicator } from "./modules/NotificationsIndicator"
 import { PopupTriggers } from "./modules/PopupTriggers"
@@ -49,8 +48,7 @@ export function BarLayout({ gdkmonitor }: BarLayoutProps) {
 
             <box $type="end" class="bar-side" hexpand halign={END} spacing={hyprGapsIn}>
                 <Audio />
-                <Network />
-                <Bluetooth />
+                <Connectivity />
                 <Battery />
                 <Media />
                 <box visible={isMain}>

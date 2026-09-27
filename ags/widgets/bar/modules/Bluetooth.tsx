@@ -1,23 +1,18 @@
 import { Gtk } from "ags/gtk4"
 import Pango from "gi://Pango"
 import { createBinding, createComputed, createState, For, With, type Accessor } from "gnim"
-import { Popover, Collapsible, Button } from "@/components"
+import { Collapsible, Button } from "@/components"
 import { ScrollArea } from "@/components/ScrollArea"
 import { icons } from "@/lib/icons"
 import { EmptyState, ErrorLabel, LoadingRow } from "@/lib/helpers/empty"
 import { pctLabel } from "@/lib/helpers/numbers"
-import { BAR_POPOVER_FALLBACK } from "@/lib/ui"
-import { popoverSize } from "@/services/monitors"
 import { useRowAction } from "@/lib/row-action"
 import {
     connectDevice,
     disconnectDevice,
-    getAdapter,
     getBluetooth,
     getDevices,
     removeDevice,
-    startDiscovery,
-    stopDiscovery,
     togglePower,
     type AstalAdapter,
     type AstalDevice,
@@ -130,21 +125,88 @@ function DeviceRow({
     )
 }
 
-function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
+export /** Connected device summary in the panel header (mirrors the wifi header). */
+function ConnectedDeviceHeader({ device }: { device: AstalDevice }) {
+    const alias = createBinding(device, "alias")
+    const battery = createBinding(device, "batteryPercentage")
+
+    const name = createComputed(() => alias() || device.get_name() || "Unknown device")
+    const batteryLabel = createComputed(() => pctLabel(battery(), ""))
+
+    return (
+        <box spacing={10} hexpand>
+            <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                <label
+                    label={name}
+                    halign={Gtk.Align.START}
+                    ellipsize={Pango.EllipsizeMode.END}
+                />
+                <label label="Connected" class="subtitle" halign={Gtk.Align.START} />
+            </box>
+            <label
+                label={batteryLabel}
+                class="subtitle"
+                valign={Gtk.Align.CENTER}
+                visible={battery((b) => b >= 0)}
+            />
+            <Button
+                label="Disconnect"
+                valign={Gtk.Align.CENTER}
+                onClicked={() => {
+                    void disconnectDevice(device).catch(() => undefined)
+                }}
+            />
+        </box>
+    )
+}
+
+/** Connected-device name + battery shown in the bar pill. */
+function TriggerDeviceInfo({ device }: { device: AstalDevice }) {
+    const alias = createBinding(device, "alias")
+    const battery = createBinding(device, "batteryPercentage")
+
+    const name = createComputed(() => alias() || device.get_name() || "")
+
+    return (
+        <box spacing={4}>
+            <label
+                label={name}
+                maxWidthChars={12}
+                ellipsize={Pango.EllipsizeMode.END}
+            />
+            <label
+                label={battery((b) => pctLabel(b, ""))}
+                class="subtitle"
+                visible={battery((b) => b >= 0)}
+            />
+        </box>
+    )
+}
+
+export function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
     const powered = createBinding(adapter, "powered")
     const discovering = createBinding(adapter, "discovering")
     const devices = createBinding(getBluetooth(), "devices")
 
+    // First connected device, if any — shown in the header like wifi.
+    const connected = createComputed(() => {
+        void devices()
+        return getDevices().find((d) => d.get_connected()) ?? null
+    })
+
     // Connected → Paired → Available, alphabetical within each group.
+    // The connected device lives in the header, so it is excluded here.
     const sorted = createComputed(() => {
         void devices()
-        return [...getDevices()].sort((a, b) => {
-            const wa = segmentWeight(a)
-            const wb = segmentWeight(b)
-            return wa !== wb
-                ? wa - wb
-                : deviceName(a).localeCompare(deviceName(b))
-        })
+        return [...getDevices()]
+            .filter((d) => !d.get_connected())
+            .sort((a, b) => {
+                const wa = segmentWeight(a)
+                const wb = segmentWeight(b)
+                return wa !== wb
+                    ? wa - wb
+                    : deviceName(a).localeCompare(deviceName(b))
+            })
     })
 
     // Collapsible: only one device expanded at a time, by address.
@@ -157,21 +219,41 @@ function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
             <box orientation={Gtk.Orientation.VERTICAL} spacing={6} valign={Gtk.Align.START}>
                 <box class="mb-1" orientation={Gtk.Orientation.VERTICAL} spacing={6}>
                     <box class="p-2" spacing={10}>
-                        <image iconName={icons.bluetooth.enabled} iconSize={Gtk.IconSize.LARGE} />
-                        <box orientation={Gtk.Orientation.VERTICAL} hexpand>
-                            <label label="Bluetooth" halign={Gtk.Align.START} />
-                            <label
-                                label={powered((p) => (p ? "On" : "Off"))}
-                                class="subtitle"
-                                halign={Gtk.Align.START}
+                        <button
+                            class="card"
+                            onClicked={() => togglePower()}
+                            tooltipText={powered((p) => (p ? "Turn Bluetooth off" : "Turn Bluetooth on"))}
+                        >
+                            <image
+                                iconName={powered((p) => (p ? icons.bluetooth.enabled : icons.bluetooth.disabled))}
+                                iconSize={Gtk.IconSize.LARGE}
                             />
-                        </box>
-                        <switch
-                            active={powered}
-                            onNotifyActive={(self: Gtk.Switch) => {
-                                if (self.active !== powered.peek()) togglePower()
-                            }}
-                        />
+                        </button>
+                        <With value={connected}>
+                            {(dev) =>
+                                dev === null ? (
+                                    <box spacing={10} hexpand>
+                                        <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                                            <label label="Bluetooth" halign={Gtk.Align.START} />
+                                            <label
+                                                label={powered((p) => (p ? "On" : "Off"))}
+                                                class="subtitle"
+                                                halign={Gtk.Align.START}
+                                            />
+                                        </box>
+                                        <switch
+                                            active={powered}
+                                            valign={Gtk.Align.CENTER}
+                                            onNotifyActive={(self: Gtk.Switch) => {
+                                                if (self.active !== powered.peek()) togglePower()
+                                            }}
+                                        />
+                                    </box>
+                                ) : (
+                                    <ConnectedDeviceHeader device={dev} />
+                                )
+                            }
+                        </With>
                     </box>
                     <With value={powered}>
                         {(on) =>
@@ -218,47 +300,32 @@ function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
     )
 }
 
-/** Bar trigger icon; reflects powered/connected state. */
-function BluetoothTrigger() {
+/** Bar trigger icon + connected-device name/battery. */
+export function BluetoothTrigger() {
     const bt = getBluetooth()
     const powered = createBinding(bt, "isPowered")
     const isConnected = createBinding(bt, "isConnected")
+    const devices = createBinding(bt, "devices")
 
     const icon = createComputed(() => {
         if (!powered()) return icons.bluetooth.disabled
         return isConnected() ? icons.bluetooth.enabled : icons.bluetooth.disconnected
     })
 
+    const active = createComputed(() => {
+        void devices()
+        return getDevices().find((d) => d.get_connected()) ?? null
+    })
+
     return (
-        <box tooltipText="Bluetooth">
+        <box spacing={4} tooltipText="Bluetooth">
             <image iconName={icon} />
+            <With value={active}>
+                {(dev) => {
+                    if (dev === null) return <box visible={false} />
+                    return <TriggerDeviceInfo device={dev} />
+                }}
+            </With>
         </box>
-    )
-}
-
-export function Bluetooth() {
-    const adapter = getAdapter()
-    const { width } = popoverSize(20, 40, BAR_POPOVER_FALLBACK)
-
-    return (
-        <Popover
-            trigger={<BluetoothTrigger />}
-            onOpen={() => {
-                if (adapter && adapter.get_powered()) startDiscovery()
-            }}
-            onClose={() => stopDiscovery()}
-            content={
-                <box widthRequest={width}>
-                    {adapter ? (
-                        <BluetoothPanel adapter={adapter} />
-                    ) : (
-                        <EmptyState
-                            icon={icons.bluetooth.disabled}
-                            label="No Bluetooth adapter"
-                        />
-                    )}
-                </box>
-            }
-        />
     )
 }

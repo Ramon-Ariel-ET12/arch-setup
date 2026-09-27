@@ -64,6 +64,11 @@ function AudioSection({
                     value={volume}
                     max={1}
                     onNotifyValue={(self: Astal.Slider) => {
+                        // Binding pushes external volume changes (call ducking,
+                        // video players, wpctl keys) into the slider, which also
+                        // emits notify::value. Without this guard every external
+                        // change writes straight back and fights the source.
+                        if (Math.abs(self.value - volume.peek()) < 0.001) return
                         endpoint.volume = self.value
                     }}
                 />
