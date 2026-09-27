@@ -40,10 +40,6 @@ function M.render_elements(master_ass)
 
     for n = 1, #state.elements do
         local element = state.elements[n]
-        -- image sidebar + info panel render outside the OSC element path.
-        if state.ui.mode == 'image' and element.name ~= 'image_ui' then
-            goto continue
-        end
         local style_ass = assdraw.ass_new()
         style_ass:merge(element.style_ass)
         ass_render.ass_append_alpha(style_ass, element.layout.alpha, 0)
@@ -262,15 +258,6 @@ function M.render_elements(master_ass)
         end
 
         master_ass:merge(elem_ass)
-        ::continue::
-    end
-
-    -- image mode: sidebar + info panel paint after (above) the click target.
-    if state.ui.mode == 'image' then
-        local ok, err = pcall(require('./image.ui').render, master_ass)
-        if not ok then
-            msg.error('render: image ui failed: ' .. tostring(err))
-        end
     end
 end
 

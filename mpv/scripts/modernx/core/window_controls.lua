@@ -51,18 +51,18 @@ function M.window_controls()
     local third_geo =
     { x = controlbox_left + 115, y = button_y, an = 5, w = 40, h = wc_geo.h }
 
-    -- Close
+    -- Close (nf-fa-close, Nerd Font; see config.lua icon note)
     local ne = new_element('close', 'button')
-    ne.content = '\238\132\149'
+    ne.content = '\239\128\141'
     ne.eventresponder['mbtn_left_up'] = function() mp.commandv('quit') end
     local lo = add_layout('close')
     lo.geometry = third_geo
     lo.style = config.osc_styles.WinCtrl
     lo.alpha[3] = 0
 
-    -- Minimize
+    -- Minimize (nf-fa-window_minimize, Nerd Font)
     ne = new_element('minimize', 'button')
-    ne.content = '\\n\238\132\146'
+    ne.content = '\\n\239\139\144'
     ne.eventresponder['mbtn_left_up'] =
         function() mp.commandv('cycle', 'window-minimized') end
     lo = add_layout('minimize')
@@ -70,12 +70,12 @@ function M.window_controls()
     lo.style = config.osc_styles.WinCtrl
     lo.alpha[3] = 0
 
-    -- Maximize / restore
+    -- Maximize / restore (nf-fa-window_maximize/restore, Nerd Font)
     ne = new_element('maximize', 'button')
     if state.maximized or state.fullscreen then
-        ne.content = '\238\132\148'
+        ne.content = '\239\139\145'
     else
-        ne.content = '\238\132\147'
+        ne.content = '\239\139\146'
     end
     ne.eventresponder['mbtn_left_up'] = function()
         if state.fullscreen then

@@ -99,35 +99,39 @@ M.language = {
 -- text strings selected from user_opts.language
 M.texts = M.language[M.user_opts.language] or M.language['eng']
 
--- icons (utf-8 bytes)
--- NB: byte escapes are Nerd Font codepoints; keep in sync with the
--- `font` user option above (fc-match "JetBrainsMono Nerd Font Mono").
+-- icons (utf-8 byte escapes for Nerd Fonts codepoints).
+-- NB: these must stay inside JetBrainsMono Nerd Font Mono coverage
+-- (verify: fc-list "JetBrainsMono Nerd Font Mono:charset=<CP>" family).
+-- The old ZMDI codepoints (U+F39x..U+F3Dx) were dropped in Nerd Fonts v3,
+-- so transport icons use Font Awesome: step-backward/forward (F048/F051),
+-- play/pause (F04B/F04C), rotate-left/right (F0E2/F01E), etc.
 M.icons = {
-    previous = '\239\142\181',
-    next = '\239\142\180',
-    play = '\239\142\170',
-    pause = '\239\142\167',
-    backward = '\239\142\160',
-    forward = '\239\142\159',
-    audio = '\239\142\183',
-    volume = '\239\142\188',
-    volume_mute = '\239\142\187',
-    sub = '\239\143\147',
-    minimize = '\239\133\172',
-    fullscreen = '\239\133\173',
+    previous = '\239\129\136',
+    next = '\239\129\145',
+    play = '\239\129\139',
+    pause = '\239\129\140',
+    backward = '\239\129\138',
+    forward = '\239\129\142',
+    audio = '\239\128\129',
+    volume = '\239\128\168',
+    volume_mute = '\239\128\166',
+    sub = '\239\136\138',
+    minimize = '\239\139\144',
+    fullscreen = '\239\139\146',
     -- image mode (Nerd Font; see note above)
     info = '\239\132\169',       -- nf-fa-info_circle
     picture = '\239\128\190',    -- nf-fa-picture_o
     close = '\239\128\141',      -- nf-fa-close
     folder = '\239\129\187',     -- nf-fa-folder_open
+    file = '\239\128\150',       -- nf-fa-file (unknown playlist type)
 }
 
 -- icons for jump button depending on jumpamount
 M.jumpicons = {
-    [5] = { '\239\142\177', '\239\142\163' },
-    [10] = { '\239\142\175', '\239\142\161' },
-    [30] = { '\239\142\176', '\239\142\162' },
-    default = { '\239\142\178\t', '\239\142\178' },
+    [5] = { '\239\131\162', '\239\128\158' },
+    [10] = { '\239\131\162', '\239\128\158' },
+    [30] = { '\239\131\162', '\239\128\158' },
+    default = { '\239\131\162\t', '\239\128\158' },
 }
 
 -- ASS style fragments (built with the user-configured font name)

@@ -57,6 +57,7 @@ tick.bind({
     visibility_mode = visibility.visibility_mode,
     do_enable_keybindings = tick.do_enable_keybindings,
     render = render.render,
+    image_render = render.render_image,
 })
 visibility.bind({
     request_tick = tick.request_tick,
@@ -181,8 +182,8 @@ mp.register_script_message('osc-tracklist', function(dur)
 end)
 mp.register_script_message('osc-visibility', visibility.visibility_mode)
 mp.register_script_message('thumbfast-info', thumbfast_m.handle)
--- image mode: input.conf maps `i` here so the panel works even when
--- mpv's builtin stats script claims the `i` key for itself.
+-- image mode: input.conf maps keys here so they survive even when
+-- mpv's builtin scripts claim the key for themselves.
 mp.register_script_message('image-info-toggle', function()
     require('./image.ui').toggle_info()
     tick.request_tick()

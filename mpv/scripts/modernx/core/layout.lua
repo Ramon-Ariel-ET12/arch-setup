@@ -8,6 +8,33 @@ local geo = require './utils.geometry'
 
 local M = {}
 
+-- Image layout: no bottom OSC at all. A small corner click target
+-- (the info button) is the only chrome; showhide covers the canvas
+-- for autohide bookkeeping. Called by osc_init instead of layouts().
+function M.image_layouts()
+    state.osc_param.areas = {} -- delete areas
+
+    local pw = state.osc_param.playresx
+    local ph = state.osc_param.playresy
+    local corner = 64 -- info button corner hit area (virtual px)
+
+    -- info button corner handles clicks; add_area takes raw corners
+    -- (x1,y1,x2,y2), unlike the an-based hitbox helper used below.
+    geo.add_area('input', pw - corner, ph - corner, pw, ph)
+    -- show/hide bookkeeping across the whole canvas.
+    geo.add_area('showhide', 0, 0, pw, ph)
+
+    local lo
+    local add_layout = require('./core.osc_init').add_layout
+
+    -- invisible click target over the info button corner (rendered by
+    -- image/ui.lua itself; this only gives it a hitbox).
+    lo = add_layout('image_ui')
+    lo.geometry = { x = pw - corner / 2, y = ph - corner / 2, an = 5, w = corner, h = corner }
+    lo.style = ''
+    lo.layer = 10
+end
+
 -- The default bottom-bar layout. Called by osc_init after all element
 -- factories have registered the elements.
 function M.layouts()

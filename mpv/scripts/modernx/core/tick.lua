@@ -9,11 +9,12 @@ local msg = require 'mp.msg'
 local state = require './state'
 local config = require './config'
 
--- forward declarations; bound in main.lua after all modules load
+-- forward declarations; bound in main.lua after all modules load.
 local request_init
 local show_osc, hide_osc, osc_visible, enable_osc, always_on, visibility_mode
 local do_enable_keybindings
 local render
+local image_render
 
 local M = {}
 
@@ -99,6 +100,16 @@ function M.tick()
     if state.idle then
         -- idle screen is rendered in core/idle.lua
         require('./core/idle').render_idle()
+    elseif state.ui.mode == 'image' then
+        -- image mode: info button + panel always visible (no autohide,
+        -- no video OSC). image_render is bound in main.lua; guard keeps
+        -- isolated unit tests (no bind) from crashing.
+        state.osc_visible = true
+        if image_render then
+            image_render()
+        else
+            render()
+        end
     elseif (state.fullscreen and config.user_opts.showfullscreen)
         or (not state.fullscreen and config.user_opts.showwindowed)
     then
@@ -138,6 +149,7 @@ function M.bind(refs)
     if refs.visibility_mode then visibility_mode = refs.visibility_mode end
     if refs.do_enable_keybindings then do_enable_keybindings = refs.do_enable_keybindings end
     if refs.render then render = refs.render end
+    if refs.image_render then image_render = refs.image_render end
 end
 
 return M

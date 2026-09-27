@@ -191,6 +191,22 @@ function M.osc_init()
     state.active_element = nil
     state.elements = {}
 
+    -- image mode: no video OSC (transport, sliders, track selectors,
+    -- displays, toggles make no sense for stills -- no timeline,
+    -- play/pause, or volume). Only the info-button click target exists.
+    if state.ui.mode == 'image' then
+        local ne = M.new_element('image_ui', 'button')
+        ne.content = require('./image.ui').render_content
+        ne.eventresponder['mbtn_left_up'] = function()
+            local x, y = require('./utils.geometry').get_virt_mouse_pos()
+            require('./image.ui').click(x, y)
+        end
+        -- layout still provides the canvas + input/showhide mouse areas.
+        require('./core.layout').image_layouts()
+        M.prepare_elements()
+        return
+    end
+
     -- commonly-needed values
     local pl_count = mp.get_property_number('playlist-count', 0)
     local have_pl = (pl_count > 1)
@@ -213,17 +229,6 @@ function M.osc_init()
     require('./elements.track_selectors').build(new_element)
     require('./elements.displays').build(new_element)
     require('./elements.toggles').build(new_element)
-
-    -- image mode replaces the bottom OSC with the sidebar; it registers
-    -- its own click target and renders beside (not inside) this tree.
-    if state.ui.mode == 'image' then
-        local ne = new_element('image_ui', 'button')
-        ne.content = require('./image.ui').render_content
-        ne.eventresponder['mbtn_left_up'] = function()
-            local x, y = require('./utils.geometry').get_virt_mouse_pos()
-            require('./image.sidebar').click(x, y)
-        end
-    end
 
     -- default layout
     require('./core.layout').layouts()

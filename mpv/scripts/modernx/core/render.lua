@@ -129,6 +129,11 @@ end
 
 -- the main render entry point
 function M.render()
+    M.render_video()
+end
+
+-- video OSC frame: animation, mouse areas, autohide, elements.
+function M.render_video()
     msg.trace('rendering')
     local current_screen_sizeX, current_screen_sizeY = mp.get_osd_size()
     local now = mp.get_time()
@@ -163,8 +168,41 @@ function M.render()
     -- actual rendering
     local ass = require('mp.assdraw').ass_new()
     render_message.render_message(ass)
+    -- render_elements skips nothing itself; image mode never reaches
+    -- here (tick routes to render_image), so the video OSC is intact.
     if state.osc_visible then
         render_elements.render_elements(ass)
+    end
+    set_osd_mod.set_osd(
+        state.osc_param.playresy * state.osc_param.display_aspect,
+        state.osc_param.playresy, ass.text)
+end
+
+-- image frame: same canvas/resize bookkeeping, but no animation, no
+-- autohide, no video elements -- just the info button + panel.
+-- Runs every tick (cheap: a couple of ASS events), so the panel state
+-- stays live without polling mpv properties per frame.
+function M.render_image()
+    local current_screen_sizeX, current_screen_sizeY = mp.get_osd_size()
+    if not (state.mp_screen_sizeX == current_screen_sizeX
+            and state.mp_screen_sizeY == current_screen_sizeY)
+    then
+        request_init_resize()
+        state.mp_screen_sizeX = current_screen_sizeX
+        state.mp_screen_sizeY = current_screen_sizeY
+    end
+
+    if state.active_element then
+        request_tick()
+    elseif state.initREQ then
+        require('./core/osc_init').osc_init()
+        state.initREQ = false
+    end
+
+    local ass = require('mp.assdraw').ass_new()
+    local ok, err = pcall(require('./image.ui').render, ass)
+    if not ok then
+        msg.error('render_image failed: ' .. tostring(err))
     end
     set_osd_mod.set_osd(
         state.osc_param.playresy * state.osc_param.display_aspect,

@@ -46,6 +46,27 @@ local function ext_is_image(path)
     return IMAGE_EXTS[ext:lower()] == true
 end
 
+-- common video container extensions for path classification.
+-- (Current-file detection uses track-list; this is only for labels.)
+local VIDEO_EXTS = {
+    mp4 = true, mkv = true, webm = true, avi = true, mov = true,
+    m4v = true, mpg = true, mpeg = true, ogv = true, flv = true,
+    m2ts = true, wmv = true, rmvb = true, y4m = true, mj2 = true,
+    ['3gp'] = true, ['3g2'] = true,
+}
+
+-- classify a bare path/filename without touching mpv state.
+-- Returns 'image' | 'video' | 'unknown'.
+function M.classify_path(filename)
+    if type(filename) ~= 'string' then return M.TYPE_UNKNOWN end
+    local ext = filename:match('%.([^%.%/\\%?]+)$')
+    if not ext then return M.TYPE_UNKNOWN end
+    ext = ext:lower()
+    if IMAGE_EXTS[ext] then return M.TYPE_IMAGE end
+    if VIDEO_EXTS[ext] then return M.TYPE_VIDEO end
+    return M.TYPE_UNKNOWN
+end
+
 -- classify the current file. Returns 'image' | 'video' | 'unknown'.
 function M.current_type()
     local from_tracks = tracklist_is_image()
