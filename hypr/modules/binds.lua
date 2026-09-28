@@ -98,9 +98,11 @@ hl.bind(Hy.mod .. " + mouse_down", hs.dsp.focus({ workspace = "e+1" }))
 hl.bind(Hy.mod .. " + mouse_up", hs.dsp.focus({ workspace = "e-1" }))
 
 -- Screenshots ------------------------------------------------------------
--- grim + satty: full-screen capture piped into Satty, opened true
--- fullscreen (whitelisted in fullscreen.lua). Ctrl+S saves to
--- ~/Pictures/Screenshots, copies to clipboard, and exits. Esc cancels.
+-- grim + satty: full-screen capture shown in Satty, opened true fullscreen
+-- (whitelisted in fullscreen.lua; animation disabled in rules.lua).
+-- Ctrl+S is the only finish key: it saves to ~/Pictures/Screenshots, closes
+-- Satty, and the script copies that file to the clipboard. Satty's own
+-- Ctrl+C is redundant by design, not a missing keybind. Esc cancels.
 -- Logic lives in hypr/scripts/screenshot.sh so the shell does the
 -- piping and the bind stays declarative.
 hl.bind(
