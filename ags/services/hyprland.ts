@@ -150,6 +150,32 @@ export async function getCursorPosition(): Promise<CursorPos | null> {
     return null
 }
 
+/**
+ * Puts the pointer back where `getCursorPosition` found it.
+ *
+ * `focusInsertTarget` warps the cursor into the refocused client
+ * (`cursor:no_warps` is false), so glyph insert captures the position up
+ * front and restores it right after `wtype` lands. Same global-layout
+ * coordinates as `j/cursorpos`; verified Lua form on 0.56
+ * (`hl.dsp.cursor.move({ x, y })` → `ok`). Failure is debug-only — the
+ * warp already happened, so a toast would just add noise.
+ */
+export async function restoreCursorPosition(pos: CursorPos): Promise<void> {
+    debugLog("hyprland", "restore cursor", pos.x, pos.y)
+    try {
+        const out = await execAsync([
+            "hyprctl",
+            "dispatch",
+            `hl.dsp.cursor.move({ x = ${Math.round(pos.x)}, y = ${Math.round(pos.y)} })`,
+        ])
+        if (out.trim() !== "ok") {
+            debugLog("hyprland", "restore cursor rejected", out)
+        }
+    } catch (err) {
+        debugLog("hyprland", "restore cursor failed", err)
+    }
+}
+
 export interface HyprlandOptions {
     gapsIn: number
     gapsOut: number

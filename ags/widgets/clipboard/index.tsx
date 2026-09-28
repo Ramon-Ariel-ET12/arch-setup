@@ -1,11 +1,12 @@
 import { Astal, Gtk } from "ags/gtk4"
 import app from "ags/gtk4/app"
 import type { Accessor } from "gnim"
-import { For, createComputed, createEffect } from "gnim"
-import { Card, ScrollArea, SearchEntry, Tabs } from "@/components"
+import { For, createComputed, createEffect, createState } from "gnim"
+import { Button, Card, ScrollArea, SearchEntry, Tabs } from "@/components"
 import type { TabDef } from "@/components"
 import { attachKeymap } from "@/lib/keyboard"
 import { clamp, scrollRangeIntoView } from "@/lib/ui"
+import { icons } from "@/lib/icons"
 import { logWarn } from "@/lib/notify"
 import { options } from "@/options"
 import { focusedGdk } from "@/services/monitors"
@@ -14,7 +15,10 @@ import {
     activateSelected,
     activeCursor,
     activeTab,
+    EMOJI_SUB_TABS,
+    emojiCategory,
     ensureVisible,
+    flushRecents,
     gridColumns,
     growSlice,
     isGridTab,
@@ -24,8 +28,12 @@ import {
     resetClipboard,
     searchText,
     setQuery,
+    showRecentsHint,
+    switchCategory,
     switchRelative,
     switchTab,
+    SYMBOL_SUB_TABS,
+    symbolCategory,
     type ClipboardItem,
     type TabId,
 } from "./actions"
@@ -37,8 +45,11 @@ import { ClipboardListRow, GridCell } from "./row"
  * A fullscreen transparent layer-shell window owns input while the visible
  * card floats at the cursor. Fully keyboard-driven:
  * - Clipboard: a vertical list; Up/Down navigate, Enter copies.
- * - Emoji / Symbols: a 50px wrap-grid of glyphs; arrows navigate the grid,
- *   Tab switches sections, hover shows the name, Enter copies the glyph.
+ * - Emoji / Symbols: a second tab row (Recents + dataset categories, each
+ *   with its own MRU) over a 50px wrap-grid of glyphs; arrows navigate the
+ *   grid, Tab switches sections, hover shows the name, Enter inserts the
+ *   glyph into the previously focused window via `wtype` (always copied to
+ *   the clipboard too, as fallback).
  * Escape or a click outside closes; Tab (or clicking a tab) switches sections.
  *
  * Toggle: `ags toggle clipboard`
@@ -132,6 +143,16 @@ export default function ClipboardPopup() {
                 >
                     <SearchEntry text={searchText} onChangeText={setQuery} />
                     <Tabs tabs={TAB_DEFS} active={activeTab} onChange={switchTab} />
+                    <SubTabsRow
+                        visible={activeTab((t) => t === "emoji")}
+                        tabs={EMOJI_SUB_TABS}
+                        active={emojiCategory}
+                    />
+                    <SubTabsRow
+                        visible={activeTab((t) => t === "symbols")}
+                        tabs={SYMBOL_SUB_TABS}
+                        active={symbolCategory}
+                    />
                     <ClipboardBody />
                 </Card>
             </fixed>
@@ -154,7 +175,12 @@ async function positionAtCursor(): Promise<{ x: number; y: number }> {
 /** Open/close behavior: retarget monitor, (re)place the card, keymap, click-outside. */
 function setupPicker(win: Astal.Window): void {
     win.connect("notify::visible", async () => {
-        if (!win.visible) return
+        if (!win.visible) {
+            // Picker closed: apply any pending recents reorder so the next
+            // open shows the updated MRU (the open grid stays stable).
+            flushRecents()
+            return
+        }
 
         const gdk = focusedGdk()
         if (gdk) win.gdkmonitor = gdk
@@ -221,6 +247,107 @@ function setupPicker(win: Astal.Window): void {
     })
 }
 
+/**
+ * Second-level tab row (Recents + categories) with arrow steppers instead of
+ * a scrollbar: the overlay bar floated over the buttons and ate their clicks.
+ * The bar is hidden via `.subtabs` CSS; arrows step, the wheel pans, and each
+ * arrow dims itself at its edge. Only one row is ever visible (per grid tab).
+ */
+function SubTabsRow({
+    visible,
+    tabs,
+    active,
+}: {
+    visible: Accessor<boolean>
+    tabs: readonly TabDef<string>[]
+    active: Accessor<string>
+}) {
+    let scroll: Gtk.ScrolledWindow | null = null
+    const [canLeft, setCanLeft] = createState(false)
+    const [canRight, setCanRight] = createState(false)
+
+    const syncEdges = (): void => {
+        if (!scroll) return
+        const adj = scroll.get_hadjustment()
+        const max = Math.max(0, adj.get_upper() - adj.get_page_size())
+        setCanLeft(adj.get_value() > 1)
+        setCanRight(adj.get_value() < max - 1)
+    }
+    const pan = (dir: -1 | 1): void => {
+        if (!scroll) return
+        const adj = scroll.get_hadjustment()
+        const max = Math.max(0, adj.get_upper() - adj.get_page_size())
+        adj.set_value(clamp(adj.get_value() + dir * SUBTAB_ARROW_STEP, 0, max))
+    }
+    return (
+        <box visible={visible} orientation={Gtk.Orientation.HORIZONTAL} spacing={2}>
+            <Button
+                icon={icons.ui.prev}
+                valign={Gtk.Align.CENTER}
+                sensitive={canLeft}
+                tooltipText="Scroll categories left"
+                onClicked={() => pan(-1)}
+            />
+            <scrolledwindow
+                hexpand
+                class="subtabs"
+                hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
+                vscrollbarPolicy={Gtk.PolicyType.NEVER}
+                propagateNaturalHeight
+                $={(self: Gtk.ScrolledWindow) => {
+                    scroll = self
+                    hookSubTabWheel(self)
+                    hookEdgeSync(self, syncEdges)
+                }}
+            >
+                <Tabs tabs={tabs} active={active} onChange={switchCategory} homogeneous={false} />
+            </scrolledwindow>
+            <Button
+                icon={icons.ui.next}
+                valign={Gtk.Align.CENTER}
+                sensitive={canRight}
+                tooltipText="Scroll categories right"
+                onClicked={() => pan(1)}
+            />
+        </box>
+    )
+}
+
+/** Pixels the sub-tab row moves per arrow press. */
+const SUBTAB_ARROW_STEP = 160
+
+/** Pixels the sub-tab row pans per mouse-wheel tick. */
+const SUBTAB_WHEEL_STEP = 64
+
+/** Pans a horizontal-only row with the vertical wheel (see `SubTabsRow`). */
+function hookSubTabWheel(scroll: Gtk.ScrolledWindow): void {    const ctrl = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
+    ctrl.connect("scroll", (_c, dx: number, dy: number) => {
+        if (dx !== 0 || dy === 0) return false // native horizontal / nothing
+        const adj = scroll.get_hadjustment()
+        if (adj.get_upper() <= adj.get_page_size()) return false // fits: nothing to pan
+        adj.set_value(
+            clamp(
+                adj.get_value() + Math.sign(dy) * SUBTAB_WHEEL_STEP,
+                0,
+                adj.get_upper() - adj.get_page_size(),
+            ),
+        )
+        return true
+    })
+    scroll.add_controller(ctrl)
+}
+
+/** Keeps the arrow sensitivities in sync with the row's scroll position. */
+function hookEdgeSync(scroll: Gtk.ScrolledWindow, sync: () => void): void {
+    if ((scroll as Gtk.ScrolledWindow & { __agsEdgeWatched?: boolean }).__agsEdgeWatched === true) return
+    ;(scroll as Gtk.ScrolledWindow & { __agsEdgeWatched?: boolean }).__agsEdgeWatched = true
+    const adj = scroll.get_hadjustment()
+    adj.connect("value-changed", sync)
+    adj.connect("changed", sync)
+    scroll.connect("realize", sync)
+    sync()
+}
+
 function ClipboardBody() {
     // Windowed clipboard entries only — don't build hidden rows while on a
     // grid tab; the slice grows on demand (infinite scroll).
@@ -241,6 +368,12 @@ function ClipboardBody() {
     })
     return (
         <ScrollArea class="card-body">
+            <box visible={showRecentsHint} halign={Gtk.Align.CENTER} class="py-2">
+                <label
+                    label="Recently inserted glyphs will appear here"
+                    class="text-micro opacity-mid"
+                />
+            </box>
             <box
                 orientation={Gtk.Orientation.VERTICAL}
                 spacing={2}
