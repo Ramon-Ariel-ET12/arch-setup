@@ -26,7 +26,8 @@ modules/binds.lua       binds (fullscreen excluded) incl. SUPER+L → loginctl l
                         (hypridle's lock_cmd owns the pause+lock; registers as __lua dispatcher)
 modules/fullscreen.lua  fullscreen policy: SUPER+F fake toggle, SUPER+SHIFT+F true toggle (whitelisted
                         against the interceptor), client fullscreen requests downgraded to fake
-                        via hl.on("window.fullscreen")
+                        via hl.on("window.fullscreen"); Satty (screenshot) exempted by initial_class
+                        whitelist — stable from creation, unlike w.class inside the fullscreen event
 modules/rules.lua       window/workspace/layer rules (suppress maximize events global, xwayland drag fix,
                         hyprland-run float, game pointer confine, one popin rule for all AGS transient surfaces)
 generated/color.lua     DO NOT HAND-EDIT — Matugen template output (Material You palette from wallpaper)
