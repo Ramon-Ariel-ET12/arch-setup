@@ -14,21 +14,6 @@
     margin: $spacing-xs 0;
 }
 
-.scroll-area {
-    padding-right: $spacing-xs;
-
-    scrollbar {
-        background: transparent;
-
-        slider {
-            background-color: rgba($on-background, $active-overlay-alpha);
-            border-radius: $radius-sm;
-            min-width: $spacing-sm;
-            min-height: $spacing-xl;
-        }
-    }
-}
-
 // Selectable row: shared hover/active treatment + standard padding.
 .row {
     @include row-button($spacing-sm);

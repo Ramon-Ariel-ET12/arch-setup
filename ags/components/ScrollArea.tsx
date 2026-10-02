@@ -19,6 +19,7 @@ export function ScrollArea({ class: cls = "", vexpand = true, hexpand = true, sp
             valign={Gtk.Align.FILL}
             hscrollbarPolicy={Gtk.PolicyType.NEVER}
             vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
+            overlayScrolling={false}
             propagateNaturalHeight
         >
             <box orientation={Gtk.Orientation.VERTICAL} spacing={spacing} valign={Gtk.Align.START}>

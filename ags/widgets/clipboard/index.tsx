@@ -248,9 +248,9 @@ function setupPicker(win: Astal.Window): void {
 }
 
 /**
- * Second-level tab row (Recents + categories) with arrow steppers instead of
- * a scrollbar: the overlay bar floated over the buttons and ate their clicks.
- * The bar is hidden via `.subtabs` CSS; arrows step, the wheel pans, and each
+ * Second-level tab row (Recents + categories) with arrow steppers plus the
+ * global classic scrollbar: the bar lives in its own gutter below the tabs,
+ * so it never covers the buttons. Arrows step, the wheel pans, and each
  * arrow dims itself at its edge. Only one row is ever visible (per grid tab).
  */
 function SubTabsRow({
@@ -293,6 +293,7 @@ function SubTabsRow({
                 class="subtabs"
                 hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
                 vscrollbarPolicy={Gtk.PolicyType.NEVER}
+                overlayScrolling={false}
                 propagateNaturalHeight
                 $={(self: Gtk.ScrolledWindow) => {
                     scroll = self

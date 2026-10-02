@@ -1,4 +1,5 @@
 import "./components/intrinsics"
+import { Gtk } from "ags/gtk4"
 import { initHyprlandSync, syncReady } from "./services/hyprland"
 import { compileAndReload } from "./services/theme"
 import app from "ags/gtk4/app"
@@ -43,6 +44,11 @@ await compileAndReload()
  * - Global surfaces (notification toasts) gate themselves to the main monitor.
  */
 function main(): void {
+    // Classic scrollbars app-wide: a real gutter instead of the floating,
+    // auto-fading Adwaita overlay (the `.subtabs` row opts back into
+    // overlay mode — its bar stays hidden by design).
+    Gtk.Settings.get_default()!.gtk_overlay_scrolling = false
+
     for (const [popupName, initPopup] of [
         ["monitors", MonitorsPopup],
         ["launcher", LauncherPopup],

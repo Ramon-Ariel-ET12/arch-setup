@@ -3,6 +3,7 @@ import { options } from "@/options"
 
 export const MONITORS_JSON = options.paths.monitorsJson
 export const FRECENCY_JSON = options.paths.frecencyJson
+export const CLIPBOARD_RECENTS_JSON = options.paths.clipboardRecentsJson
 export const WALLPAPER_JSON = options.paths.wallpaperJson
 export const NOTIFICATIONS_JSON = options.paths.notificationsJson
 export const DIST_CSS = options.paths.distCss
@@ -11,6 +12,7 @@ export const STYLE_HYPRLAND_SCSS = options.paths.styleHyprlandScss
 
 export const LEGACY_MONITORS_JSON = options.paths.legacyMonitorsJson
 export const LEGACY_FRECENCY_JSON = options.paths.legacyFrecencyJson
+export const LEGACY_CLIPBOARD_RECENTS_JSON = options.paths.legacyClipboardRecentsJson
 export const LEGACY_WALLPAPER_JSON = options.paths.legacyWallpaperJson
 export const LEGACY_DIST_CSS = options.paths.legacyDistCss
 export const LEGACY_PREFS_JSON = options.paths.legacyPrefsJson

@@ -1,0 +1,95 @@
+// Scrollbar — the single default for every scrolled viewport.
+//
+// Every bar in the shell (vertical + horizontal, `ScrollArea` lists, the
+// clipboard sub-tab row, native menus) inherits this; no hiding rules or
+// per-widget overrides exist anywhere.
+//
+// Overlay scrolling is disabled app-wide (see `main()` in app.tsx) so bars
+// live in a real gutter instead of floating over content and auto-fading
+// like the Adwaita default. The `.overlay-indicator` rules below pin the
+// same look for any surface that still opts into overlay mode.
+//
+// GTK4 node tree: `scrollbar(.vertical|.horizontal|.overlay-indicator)`
+// > `range > trough > slider`.
+
+@use "../abstracts/variables" as *;
+
+// Dedicated gutter — never floating, never the 2px Adwaita ghost.
+$scrollbar-gutter: $spacing-md;
+$scrollbar-thumb: $spacing-sm;
+$scrollbar-length: $spacing-xl * 2;
+
+scrollbar {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+
+    &.vertical {
+        min-width: $scrollbar-gutter;
+    }
+
+    &.horizontal {
+        min-height: $scrollbar-gutter;
+    }
+
+    // Visible track pill so the bar reads even at rest. Inset is the
+    // compositor border width so the track hugs the gutter.
+    trough {
+        background-color: rgba($on-background, $faint-overlay-alpha);
+        border: none;
+        box-shadow: none;
+        border-radius: 999px;
+        margin: $border-width;
+    }
+
+    // Solid muted thumb (theme outline, not the Adwaita accent wash).
+    slider {
+        background-color: $outline;
+        background-image: none;
+        border: $border-width solid $surface-container;
+        box-shadow: none;
+        border-radius: 999px;
+        min-width: $scrollbar-thumb;
+        min-height: $scrollbar-length;
+    }
+
+    &.horizontal slider {
+        min-width: $scrollbar-length;
+        min-height: $scrollbar-thumb;
+    }
+
+    slider:hover {
+        background-color: $primary;
+    }
+
+    slider:active {
+        background-color: $primary;
+        border-color: $primary-container;
+    }
+
+    slider:disabled,
+    &:disabled slider {
+        opacity: 0.38;
+    }
+
+    // Any overlay survivor keeps the full custom look and never fades.
+    &.overlay-indicator {
+        opacity: 1;
+        background: transparent;
+
+        slider {
+            background-color: $outline;
+            min-width: $scrollbar-thumb;
+            min-height: $scrollbar-length;
+        }
+
+        &.horizontal slider {
+            min-width: $scrollbar-length;
+            min-height: $scrollbar-thumb;
+        }
+    }
+
+    junction {
+        background: transparent;
+    }
+}

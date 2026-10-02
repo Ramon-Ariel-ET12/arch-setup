@@ -24,6 +24,8 @@ export const options = {
         /** Regenerable runtime caches (safe to wipe) — XDG cache. */
         frecencyJson: GLib.build_filenamev([cacheHome, "ags", "frecency.json"]),
         wallpaperJson: GLib.build_filenamev([cacheHome, "ags", "wallpaper.json"]),
+        /** Recently inserted emoji/symbols (MRU per glyph kind, regenerable). */
+        clipboardRecentsJson: GLib.build_filenamev([cacheHome, "ags", "clipboard-recents.json"]),
         /** User prefs/state (survives cache wipes) — XDG state. */
         dataDir: GLib.build_filenamev([stateHome, "ags"]),
         monitorsJson: GLib.build_filenamev([stateHome, "ags", "monitors.json"]),
@@ -35,6 +37,7 @@ export const options = {
         distCss: GLib.build_filenamev([cacheHome, "ags", "style.css"]),
         /** Legacy paths for migration (read compat). */
         legacyFrecencyJson: GLib.build_filenamev([agsDir, "cache", "frecency.json"]),
+        legacyClipboardRecentsJson: GLib.build_filenamev([agsDir, "cache", "clipboard-recents.json"]),
         legacyWallpaperJson: GLib.build_filenamev([agsDir, "cache", "wallpaper.json"]),
         legacyMonitorsJson: GLib.build_filenamev([agsDir, "data", "monitors.json"]),
         legacyPrefsJson: GLib.build_filenamev([agsDir, "data", "prefs.json"]),
@@ -108,6 +111,8 @@ export const options = {
         gridInitial: 72,
         /** Cells added per progressive fill tick. */
         gridBatch: 40,
+        /** Recently-inserted glyphs kept per kind (emoji / symbols). */
+        recentsLimit: 30,
         /** Types the glyph via virtual keyboard (`--` guards glyphs starting with `-`). */
         typeCommand: ["wtype", "--"] as string[],
         /** Close → refocus grace before typing (lets Hyprland refocus the client). */

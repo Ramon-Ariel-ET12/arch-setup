@@ -48,6 +48,22 @@ export function closePopup(name: PopupName): void {
     show(name, false)
 }
 
+/**
+ * Best-effort keyboard refocus of a still-visible popup (e.g. the clipboard
+ * picker after a `wtype` insert stole focus to the target client). No-op when
+ * the window is missing or already hidden.
+ */
+export function presentPopup(name: PopupName): void {
+    const win = windowOf(name)
+    if (!win || !win.visible) return
+    try {
+        debugLog("popups", "present", name)
+        win.present()
+    } catch (err) {
+        debugLog("popups", "present failed", name, err)
+    }
+}
+
 /** Mirrors the behavior of `ags toggle <name>`. */
 export function togglePopup(name: PopupName): void {
     const win = windowOf(name)
