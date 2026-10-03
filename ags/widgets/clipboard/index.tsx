@@ -266,12 +266,12 @@ function SubTabsRow({
             <scrolledwindow
                 hexpand
                 class="subtabs"
-                hscrollbarPolicy={Gtk.PolicyType.NEVER}
+                // EXTERNAL, not NEVER: NEVER also disables horizontal scrolling, so the row
+                // demands every category's width and the card grows to fit. The
+                // card's own widthRequest owns the layout.
+                hscrollbarPolicy={Gtk.PolicyType.EXTERNAL}
                 vscrollbarPolicy={Gtk.PolicyType.NEVER}
-                overlayScrolling={false}
                 propagateNaturalHeight
-                // Without this the row's natural width (all categories) grows
-                // the card; the card's own widthRequest owns the layout.
                 propagateNaturalWidth={false}
                 $={(self: Gtk.ScrolledWindow) => hookSubTabWheel(self)}
             >
