@@ -195,6 +195,12 @@ export function pairDevice(device: AstalBluetooth.Device): void {
     device.pair()
 }
 
+/** Trust (auto-accept reconnects) or untrust a paired device. */
+export function setTrusted(device: AstalBluetooth.Device, trusted: boolean): void {
+    debugLog("bluetooth", "setTrusted address=", device.get_address(), "trusted=", trusted)
+    device.trusted = trusted
+}
+
 export function removeDevice(address: string): void {
     debugLog("bluetooth", "removeDevice address=", address)
     const adapter = getAdapter()

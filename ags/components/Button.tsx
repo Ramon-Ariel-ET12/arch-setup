@@ -11,6 +11,7 @@ interface ButtonProps {
     hexpand?: boolean | Accessor<boolean>
     valign?: Gtk.Align | Accessor<Gtk.Align>
     sensitive?: boolean | Accessor<boolean>
+    visible?: boolean | Accessor<boolean>
 }
 
 /** Shared button with variants styled in `_button.scss`. */
@@ -23,6 +24,7 @@ export function Button({
     hexpand,
     valign,
     sensitive = true,
+    visible = true,
 }: ButtonProps) {
     return (
         <button
@@ -35,6 +37,7 @@ export function Button({
             hexpand={hexpand}
             valign={valign}
             sensitive={sensitive}
+            visible={visible}
         >
             <box spacing={5}>
                 {icon !== undefined && <image iconName={icon} />}

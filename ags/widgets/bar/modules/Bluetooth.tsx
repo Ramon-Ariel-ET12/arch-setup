@@ -14,6 +14,7 @@ import {
     getDevices,
     pairDevice,
     removeDevice,
+    setTrusted,
     togglePower,
     type AstalAdapter,
     type AstalDevice,
@@ -79,9 +80,7 @@ function DeviceRow({
     })
 
     const chevron = open((o) => (o ? icons.ui.chevronUp : icons.ui.chevronDown))
-    const actionLabel = createComputed(() =>
-        connected() ? "Disconnect" : paired() ? "Connect" : "Pair",
-    )
+    const trustLabel = trusted((t) => (t ? "Untrust" : "Trust"))
 
     return (
         <Collapsible
@@ -123,18 +122,34 @@ function DeviceRow({
 
                     <box spacing={6} homogeneous>
                         <Button
-                            label={actionLabel}
-                            onClicked={() => {
-                                if (connected()) run(() => disconnectDevice(device))
-                                else if (paired()) run(() => connectDevice(device))
-                                else run(() => pairDevice(device))
-                            }}
+                            label="Disconnect"
+                            onClicked={() => run(() => disconnectDevice(device))}
                             sensitive={notBusy}
+                            visible={connected}
                         />
                         <Button
-                            label="Remove"
+                            label="Connect"
+                            onClicked={() => run(() => connectDevice(device))}
+                            sensitive={notBusy}
+                            visible={createComputed(() => paired() && !connected())}
+                        />
+                        <Button
+                            label="Pair"
+                            onClicked={() => run(() => pairDevice(device))}
+                            sensitive={notBusy}
+                            visible={paired((p) => !p)}
+                        />
+                        <Button
+                            label={trustLabel}
+                            onClicked={() => run(() => setTrusted(device, !trusted()))}
+                            sensitive={notBusy}
+                            visible={paired}
+                        />
+                        <Button
+                            label="Forget"
                             onClicked={() => run(() => removeDevice(device.get_address()))}
                             sensitive={notBusy}
+                            visible={paired}
                         />
                     </box>
 
