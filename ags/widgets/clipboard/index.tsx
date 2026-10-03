@@ -1,12 +1,11 @@
 import { Astal, Gtk } from "ags/gtk4"
 import app from "ags/gtk4/app"
 import type { Accessor } from "gnim"
-import { For, createComputed, createEffect, createState } from "gnim"
-import { Button, Card, ScrollArea, SearchEntry, Tabs } from "@/components"
+import { For, createComputed, createEffect } from "gnim"
+import { Card, ScrollArea, SearchEntry, Tabs } from "@/components"
 import type { TabDef } from "@/components"
 import { attachKeymap } from "@/lib/keyboard"
 import { clamp, scrollRangeIntoView } from "@/lib/ui"
-import { icons } from "@/lib/icons"
 import { logWarn } from "@/lib/notify"
 import { options } from "@/options"
 import { focusedGdk } from "@/services/monitors"
@@ -248,10 +247,10 @@ function setupPicker(win: Astal.Window): void {
 }
 
 /**
- * Second-level tab row (Recents + categories) with arrow steppers plus the
- * global classic scrollbar: the bar lives in its own gutter below the tabs,
- * so it never covers the buttons. Arrows step, the wheel pans, and each
- * arrow dims itself at its edge. Only one row is ever visible (per grid tab).
+ * Second-level tab row (Recents + categories): a horizontally scrollable row
+ * panned by the wheel (or a horizontal trackpad swipe), with no scrollbar —
+ * the row is a thin tab strip, not a content viewport, so it claims no gutter.
+ * Only one row is ever visible (per grid tab).
  */
 function SubTabsRow({
     visible,
@@ -262,66 +261,32 @@ function SubTabsRow({
     tabs: readonly TabDef<string>[]
     active: Accessor<string>
 }) {
-    let scroll: Gtk.ScrolledWindow | null = null
-    const [canLeft, setCanLeft] = createState(false)
-    const [canRight, setCanRight] = createState(false)
-
-    const syncEdges = (): void => {
-        if (!scroll) return
-        const adj = scroll.get_hadjustment()
-        const max = Math.max(0, adj.get_upper() - adj.get_page_size())
-        setCanLeft(adj.get_value() > 1)
-        setCanRight(adj.get_value() < max - 1)
-    }
-    const pan = (dir: -1 | 1): void => {
-        if (!scroll) return
-        const adj = scroll.get_hadjustment()
-        const max = Math.max(0, adj.get_upper() - adj.get_page_size())
-        adj.set_value(clamp(adj.get_value() + dir * SUBTAB_ARROW_STEP, 0, max))
-    }
     return (
         <box visible={visible} orientation={Gtk.Orientation.HORIZONTAL} spacing={2}>
-            <Button
-                icon={icons.ui.prev}
-                valign={Gtk.Align.CENTER}
-                sensitive={canLeft}
-                tooltipText="Scroll categories left"
-                onClicked={() => pan(-1)}
-            />
             <scrolledwindow
                 hexpand
                 class="subtabs"
-                hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
+                hscrollbarPolicy={Gtk.PolicyType.NEVER}
                 vscrollbarPolicy={Gtk.PolicyType.NEVER}
                 overlayScrolling={false}
                 propagateNaturalHeight
-                $={(self: Gtk.ScrolledWindow) => {
-                    scroll = self
-                    hookSubTabWheel(self)
-                    hookEdgeSync(self, syncEdges)
-                }}
+                // Without this the row's natural width (all categories) grows
+                // the card; the card's own widthRequest owns the layout.
+                propagateNaturalWidth={false}
+                $={(self: Gtk.ScrolledWindow) => hookSubTabWheel(self)}
             >
                 <Tabs tabs={tabs} active={active} onChange={switchCategory} homogeneous={false} />
             </scrolledwindow>
-            <Button
-                icon={icons.ui.next}
-                valign={Gtk.Align.CENTER}
-                sensitive={canRight}
-                tooltipText="Scroll categories right"
-                onClicked={() => pan(1)}
-            />
         </box>
     )
 }
-
-/** Pixels the sub-tab row moves per arrow press. */
-const SUBTAB_ARROW_STEP = 160
 
 /** Pixels the sub-tab row pans per mouse-wheel tick. */
 const SUBTAB_WHEEL_STEP = 64
 
 /** Pans a horizontal-only row with the vertical wheel (see `SubTabsRow`). */
-function hookSubTabWheel(scroll: Gtk.ScrolledWindow): void {    const ctrl = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
+function hookSubTabWheel(scroll: Gtk.ScrolledWindow): void {
+    const ctrl = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
     ctrl.connect("scroll", (_c, dx: number, dy: number) => {
         if (dx !== 0 || dy === 0) return false // native horizontal / nothing
         const adj = scroll.get_hadjustment()
@@ -336,17 +301,6 @@ function hookSubTabWheel(scroll: Gtk.ScrolledWindow): void {    const ctrl = Gtk
         return true
     })
     scroll.add_controller(ctrl)
-}
-
-/** Keeps the arrow sensitivities in sync with the row's scroll position. */
-function hookEdgeSync(scroll: Gtk.ScrolledWindow, sync: () => void): void {
-    if ((scroll as Gtk.ScrolledWindow & { __agsEdgeWatched?: boolean }).__agsEdgeWatched === true) return
-    ;(scroll as Gtk.ScrolledWindow & { __agsEdgeWatched?: boolean }).__agsEdgeWatched = true
-    const adj = scroll.get_hadjustment()
-    adj.connect("value-changed", sync)
-    adj.connect("changed", sync)
-    scroll.connect("realize", sync)
-    sync()
 }
 
 function ClipboardBody() {

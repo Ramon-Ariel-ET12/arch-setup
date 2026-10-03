@@ -16,6 +16,5 @@
     }
 }
 
-// Clipboard sub-tab row: arrows + wheel drive the scrolling, and the global
-// classic scrollbar paints in its own gutter — it can no longer float over
-// the buttons and eat their clicks, so no hiding rule lives here.
+// Clipboard sub-tab row needs no styling: it is a thin tab strip with no
+// scrollbar (the wheel pans it), so there is nothing to override here.
