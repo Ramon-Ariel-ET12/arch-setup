@@ -27,6 +27,7 @@ export const icons = {
         next: "go-next-symbolic",
         chevronUp: "pan-up-symbolic",
         chevronDown: "pan-down-symbolic",
+        trusted: "security-high-symbolic",
         warn: "dialog-warning-symbolic",
         error: "dialog-error-symbolic",
     },

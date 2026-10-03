@@ -1,12 +1,13 @@
 import { Gtk } from "ags/gtk4"
-import { createState } from "gnim"
+import { createState, With } from "gnim"
 import { Popover, Tabs } from "@/components"
 import { EmptyState } from "@/lib/helpers/empty"
 import { icons } from "@/lib/icons"
 import { BAR_POPOVER_FALLBACK } from "@/lib/ui"
 import { popoverSize } from "@/services/monitors"
 import {
-    getAdapter,
+    bluetoothAdapter,
+    bluezAvailable,
     startDiscovery,
     stopDiscovery,
 } from "@/services/bluetooth"
@@ -25,16 +26,17 @@ const TABS = [
  * bar card, opening one popover with tabbed panels.
  */
 export function Connectivity() {
-    const adapter = getAdapter()
     const { width } = popoverSize(20, 40, BAR_POPOVER_FALLBACK)
     const [tab, setTab] = createState<ConnTab>("wifi")
 
+    // startDiscovery is safe to call unconditionally: the service re-resolves
+    // the live adapter and no-ops while unpowered or adapter-less.
     const selectTab = (id: ConnTab) => {
         setTab(id)
         if (id === "wifi") {
             stopDiscovery()
             refreshWifi()
-        } else if (adapter?.get_powered()) {
+        } else {
             startDiscovery()
         }
     }
@@ -49,7 +51,7 @@ export function Connectivity() {
             }
             onOpen={() => {
                 if (tab.peek() === "wifi") refreshWifi()
-                else if (adapter?.get_powered()) startDiscovery()
+                else startDiscovery()
             }}
             onClose={() => stopDiscovery()}
             content={
@@ -66,14 +68,29 @@ export function Connectivity() {
                         <NetworkPanel />
                     </box>
                     <box visible={tab((t) => t === "bluetooth")}>
-                        {adapter ? (
-                            <BluetoothPanel adapter={adapter} />
-                        ) : (
-                            <EmptyState
-                                icon={icons.bluetooth.disabled}
-                                label="No Bluetooth adapter"
-                            />
-                        )}
+                        <With value={bluetoothAdapter}>
+                            {(adapter) =>
+                                adapter !== null ? (
+                                    <BluetoothPanel adapter={adapter} />
+                                ) : (
+                                    <With value={bluezAvailable}>
+                                        {(ready) =>
+                                            ready ? (
+                                                <EmptyState
+                                                    icon={icons.bluetooth.disabled}
+                                                    label="No Bluetooth adapter"
+                                                />
+                                            ) : (
+                                                <EmptyState
+                                                    icon={icons.ui.refresh}
+                                                    label="Waiting for Bluetooth service…"
+                                                />
+                                            )
+                                        }
+                                    </With>
+                                )
+                            }
+                        </With>
                     </box>
                 </box>
             }

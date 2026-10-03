@@ -12,6 +12,7 @@ import {
     disconnectDevice,
     getBluetooth,
     getDevices,
+    pairDevice,
     removeDevice,
     togglePower,
     type AstalAdapter,
@@ -23,16 +24,14 @@ import {
  *
  * The bar shows a bluetooth icon that reflects the powered/connected state;
  * clicking opens a GTK4 `Popover` below the button. Inside: a power toggle at
- * the top and a scrollable list of known devices grouped into Connected /
- * Paired / Available. Each device is a `Collapsible` with connect / disconnect
- * / pair / remove actions.
+ * the top and a scrollable list of devices grouped into Known (paired or
+ * trusted) and Available (discovered, not yet paired) sections. Each device
+ * is a `Collapsible` with connect / disconnect / pair / remove actions.
  */
 
-/** Sort connected devices first, then paired, then the rest, alphabetically. */
-function segmentWeight(device: AstalDevice): number {
-    if (device.get_connected()) return 0
-    if (device.get_paired()) return 1
-    return 2
+/** Paired or trusted devices are "known"; everything else is merely available. */
+function isKnown(device: AstalDevice): boolean {
+    return device.get_paired() || device.get_trusted()
 }
 
 function deviceName(device: AstalDevice): string {
@@ -51,16 +50,33 @@ function DeviceRow({
 }) {
     const connected = createBinding(device, "connected")
     const paired = createBinding(device, "paired")
+    const trusted = createBinding(device, "trusted")
     const connecting = createBinding(device, "connecting")
     const battery = createBinding(device, "batteryPercentage")
 
     const { error, notBusy, run } = useRowAction()
 
-    const iconName = createComputed(() =>
-        connected() ? icons.bluetooth.enabled : icons.bluetooth.disconnected,
-    )
+    // BlueZ-proposed icon, tracked live — falls back to the generic glyph.
+    const deviceIcon = createBinding(device, "icon")
+    const typeIcon = deviceIcon((i) => i || icons.bluetooth.device)
+
+    // State badge: trusted lock, paired check, nothing for merely available.
+    const badge = createComputed(() => {
+        if (trusted()) return icons.ui.trusted
+        if (paired()) return icons.ui.check
+        return null
+    })
 
     const batteryLabel = createComputed(() => pctLabel(battery(), ""))
+
+    const addressLine = createComputed(() => {
+        const flags = [paired() ? "Paired" : null, trusted() ? "Trusted" : null].filter(
+            (f): f is string => f !== null,
+        )
+        return flags.length > 0
+            ? `${device.get_address()} · ${flags.join(" · ")}`
+            : device.get_address()
+    })
 
     const chevron = open((o) => (o ? icons.ui.chevronUp : icons.ui.chevronDown))
     const actionLabel = createComputed(() =>
@@ -73,7 +89,7 @@ function DeviceRow({
             onToggle={onToggle}
             header={
                 <box spacing={10} widthRequest={240}>
-                    <image iconName={iconName} />
+                    <image iconName={typeIcon} />
                     <label
                         label={deviceName(device)}
                         hexpand
@@ -81,6 +97,10 @@ function DeviceRow({
                         xalign={0}
                     />
                     <label label={batteryLabel} class="subtitle" />
+                    <image
+                        iconName={badge((b) => b ?? "")}
+                        visible={badge((b) => b !== null)}
+                    />
                     <image
                         iconName={chevron}
                     />
@@ -107,7 +127,7 @@ function DeviceRow({
                             onClicked={() => {
                                 if (connected()) run(() => disconnectDevice(device))
                                 else if (paired()) run(() => connectDevice(device))
-                                else run(() => device.pair())
+                                else run(() => pairDevice(device))
                             }}
                             sensitive={notBusy}
                         />
@@ -118,6 +138,7 @@ function DeviceRow({
                         />
                     </box>
 
+                    <label label={addressLine} class="subtitle" halign={Gtk.Align.START} />
                     <ErrorLabel error={error} />
                 </box>
             }
@@ -129,6 +150,7 @@ export /** Connected device summary in the panel header (mirrors the wifi header
 function ConnectedDeviceHeader({ device }: { device: AstalDevice }) {
     const alias = createBinding(device, "alias")
     const battery = createBinding(device, "batteryPercentage")
+    const icon = createBinding(device, "icon")
 
     const name = createComputed(() => alias() || device.get_name() || "Unknown device")
     const batteryLabel = createComputed(() => pctLabel(battery(), ""))
@@ -143,6 +165,10 @@ function ConnectedDeviceHeader({ device }: { device: AstalDevice }) {
                 />
                 <label label="Connected" class="subtitle" halign={Gtk.Align.START} />
             </box>
+            <image
+                iconName={icon((i) => i || icons.bluetooth.enabled)}
+                valign={Gtk.Align.CENTER}
+            />
             <label
                 label={batteryLabel}
                 class="subtitle"
@@ -183,6 +209,43 @@ function TriggerDeviceInfo({ device }: { device: AstalDevice }) {
     )
 }
 
+/** Text-only section label with a count — rows carry the iconography. */
+function SectionHeader({ label, count }: { label: string; count: Accessor<number> }) {
+    return (
+        <box spacing={8} valign={Gtk.Align.CENTER}>
+            <label label={label} class="subtitle" halign={Gtk.Align.START} hexpand />
+            <label label={count((c) => `${c}`)} class="subtitle" />
+        </box>
+    )
+}
+
+/** One grouped device list sharing the panel-wide single-open accordion. */
+function DeviceList({
+    devices,
+    openAddr,
+    setOpenAddr,
+}: {
+    devices: Accessor<AstalDevice[]>
+    openAddr: Accessor<string | null>
+    setOpenAddr: (addr: string | null) => void
+}) {
+    return (
+        <For each={devices}>
+            {(device: AstalDevice) => {
+                const id = device.get_address()
+                const open = createComputed(() => openAddr() === id)
+                return (
+                    <DeviceRow
+                        device={device}
+                        open={open}
+                        onToggle={(next) => setOpenAddr(next ? id : null)}
+                    />
+                )
+            }}
+        </For>
+    )
+}
+
 export function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
     const powered = createBinding(adapter, "powered")
     const discovering = createBinding(adapter, "discovering")
@@ -194,25 +257,32 @@ export function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
         return getDevices().find((d) => d.get_connected()) ?? null
     })
 
-    // Connected → Paired → Available, alphabetical within each group.
+    // Known (paired/trusted) vs Available (discovered, unpaired) sections.
     // The connected device lives in the header, so it is excluded here.
-    const sorted = createComputed(() => {
+    // Unknown/nameless devices are kept in Available — that is where
+    // not-yet-paired headphones show up while discovering.
+    const known = createComputed(() => {
         void devices()
         return [...getDevices()]
-            .filter((d) => !d.get_connected())
-            .sort((a, b) => {
-                const wa = segmentWeight(a)
-                const wb = segmentWeight(b)
-                return wa !== wb
-                    ? wa - wb
-                    : deviceName(a).localeCompare(deviceName(b))
-            })
+            .filter((d) => !d.get_connected() && isKnown(d))
+            .sort((a, b) => deviceName(a).localeCompare(deviceName(b)))
+    })
+
+    const available = createComputed(() => {
+        void devices()
+        return [...getDevices()]
+            .filter((d) => !d.get_connected() && !isKnown(d))
+            .sort((a, b) => b.get_rssi() - a.get_rssi() || deviceName(a).localeCompare(deviceName(b)))
     })
 
     // Collapsible: only one device expanded at a time, by address.
     const [openAddr, setOpenAddr] = createState<string | null>(null)
 
-    const empty = createComputed(() => !discovering() && sorted().length === 0)
+    const knownCount = createComputed(() => known().length)
+    const availableCount = createComputed(() => available().length)
+    const empty = createComputed(
+        () => !discovering() && known().length === 0 && available().length === 0,
+    )
 
     return (
         <box class="min-w-popup" orientation={Gtk.Orientation.VERTICAL} spacing={4} valign={Gtk.Align.START} vexpand>
@@ -282,22 +352,47 @@ export function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
                         )
                     }
                 </With>
-                <For each={sorted}>
-                    {(device: AstalDevice) => {
-                        const id = device.get_address()
-                        const open = createComputed(() => openAddr() === id)
-                        return (
-                            <DeviceRow
-                                device={device}
-                                open={open}
-                                onToggle={(next) => setOpenAddr(next ? id : null)}
-                            />
+                <With value={knownCount}>
+                    {(c) =>
+                        c === 0 ? (
+                            <box />
+                        ) : (
+                            <box orientation={Gtk.Orientation.VERTICAL} spacing={2}>
+                                <SectionHeader label="Known" count={knownCount} />
+                                <DeviceList
+                                    devices={known}
+                                    openAddr={openAddr}
+                                    setOpenAddr={setOpenAddr}
+                                />
+                            </box>
                         )
-                    }}
-                </For>
+                    }
+                </With>
+                <With value={availableCount}>
+                    {(c) =>
+                        c === 0 ? (
+                            <box />
+                        ) : (
+                            <box orientation={Gtk.Orientation.VERTICAL} spacing={2}>
+                                <SectionHeader label="Available" count={availableCount} />
+                                <DeviceList
+                                    devices={available}
+                                    openAddr={openAddr}
+                                    setOpenAddr={setOpenAddr}
+                                />
+                            </box>
+                        )
+                    }
+                </With>
             </ScrollArea>
         </box>
     )
+}
+
+/** Connected-device icon in the bar pill (BlueZ-proposed, live). */
+function ConnectedTriggerIcon({ device }: { device: AstalDevice }) {
+    const icon = createBinding(device, "icon")
+    return <image iconName={icon((i) => i || icons.bluetooth.enabled)} />
 }
 
 /** Bar trigger icon + connected-device name/battery. */
@@ -307,7 +402,8 @@ export function BluetoothTrigger() {
     const isConnected = createBinding(bt, "isConnected")
     const devices = createBinding(bt, "devices")
 
-    const icon = createComputed(() => {
+    // Default bluetooth glyph; replaced by the connected device's own icon.
+    const defaultIcon = createComputed(() => {
         if (!powered()) return icons.bluetooth.disabled
         return isConnected() ? icons.bluetooth.enabled : icons.bluetooth.disconnected
     })
@@ -319,12 +415,19 @@ export function BluetoothTrigger() {
 
     return (
         <box spacing={4} tooltipText="Bluetooth">
-            <image iconName={icon} />
             <With value={active}>
-                {(dev) => {
-                    if (dev === null) return <box visible={false} />
-                    return <TriggerDeviceInfo device={dev} />
-                }}
+                {(dev) =>
+                    dev === null ? (
+                        <box spacing={4}>
+                            <image iconName={defaultIcon} />
+                        </box>
+                    ) : (
+                        <box spacing={4}>
+                            <ConnectedTriggerIcon device={dev} />
+                            <TriggerDeviceInfo device={dev} />
+                        </box>
+                    )
+                }
             </With>
         </box>
     )
