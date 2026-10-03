@@ -1,5 +1,5 @@
 import { Gtk } from "ags/gtk4"
-import { createState, With } from "gnim"
+import { createComputed, createState, With } from "gnim"
 import { Popover, Tabs } from "@/components"
 import { EmptyState } from "@/lib/helpers/empty"
 import { icons } from "@/lib/icons"
@@ -10,11 +10,22 @@ import {
     bluezAvailable,
     startDiscovery,
     stopDiscovery,
+    type AstalAdapter,
 } from "@/services/bluetooth"
 import { BluetoothPanel, BluetoothTrigger } from "./Bluetooth"
 import { NetworkPanel, NetworkTrigger, refreshWifi } from "./Network"
 
 type ConnTab = "wifi" | "bluetooth"
+
+/**
+ * Bluetooth tab content, flattened into one `With` value: gnim fragments
+ * cannot nest, so the adapter / waiting / missing cases resolve here instead
+ * of through nested `With`s.
+ */
+type BtTab =
+    | { kind: "panel"; adapter: AstalAdapter }
+    | { kind: "waiting" }
+    | { kind: "missing" }
 
 const TABS = [
     { id: "wifi", label: "Wi-Fi" },
@@ -28,6 +39,12 @@ const TABS = [
 export function Connectivity() {
     const { width } = popoverSize(20, 40, BAR_POPOVER_FALLBACK)
     const [tab, setTab] = createState<ConnTab>("wifi")
+
+    const btTab = createComputed<BtTab>(() => {
+        const adapter = bluetoothAdapter()
+        if (adapter !== null) return { kind: "panel", adapter }
+        return bluezAvailable() ? { kind: "missing" } : { kind: "waiting" }
+    })
 
     // startDiscovery is safe to call unconditionally: the service re-resolves
     // the live adapter and no-ops while unpowered or adapter-less.
@@ -68,26 +85,20 @@ export function Connectivity() {
                         <NetworkPanel />
                     </box>
                     <box visible={tab((t) => t === "bluetooth")}>
-                        <With value={bluetoothAdapter}>
-                            {(adapter) =>
-                                adapter !== null ? (
-                                    <BluetoothPanel adapter={adapter} />
+                        <With value={btTab}>
+                            {(state) =>
+                                state.kind === "panel" ? (
+                                    <BluetoothPanel adapter={state.adapter} />
+                                ) : state.kind === "missing" ? (
+                                    <EmptyState
+                                        icon={icons.bluetooth.disabled}
+                                        label="No Bluetooth adapter"
+                                    />
                                 ) : (
-                                    <With value={bluezAvailable}>
-                                        {(ready) =>
-                                            ready ? (
-                                                <EmptyState
-                                                    icon={icons.bluetooth.disabled}
-                                                    label="No Bluetooth adapter"
-                                                />
-                                            ) : (
-                                                <EmptyState
-                                                    icon={icons.ui.refresh}
-                                                    label="Waiting for Bluetooth service…"
-                                                />
-                                            )
-                                        }
-                                    </With>
+                                    <EmptyState
+                                        icon={icons.ui.refresh}
+                                        label="Waiting for Bluetooth service…"
+                                    />
                                 )
                             }
                         </With>
