@@ -1,6 +1,6 @@
 # tmux Keybindings Reference
 
-> **Prefix:** `C-a` (`C-b` kept as alias). Reload config: `prefix + r`.
+> **Prefix:** `C-a` (C-b is disabled, `prefix2 None`). Reload: `prefix + r`.
 > Source of truth: [`tmux.conf`](./tmux.conf).
 
 ## Sessions & Windows
@@ -93,7 +93,7 @@ Enter with `prefix + [`.
 | `pane-scrollbars` | `modal` | Scrollbar only in copy mode, no width stolen otherwise |
 | `history-limit` | `100000` | Deep scrollback |
 | `default-terminal` | `tmux-256color` | Truecolor inside tmux on kitty |
-| `prefix2` | `C-b` | Second prefix, for the tmux default habit |
+| `prefix2` | `None` | No second prefix; `C-b` reaches the app as a normal key |
 | `pane-border-lines` | `rounded` on tmux ≥ 3.8 | Version-gated in the config; falls back to `single` on 3.7 |
 
 ## tmux Version Notes
