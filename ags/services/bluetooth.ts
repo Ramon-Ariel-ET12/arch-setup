@@ -1,138 +1,119 @@
 import AstalBluetooth from "gi://AstalBluetooth?version=0.1"
 import Gio from "gi://Gio"
-import { createState, type Accessor } from "gnim"
+import { createBinding, createState, type Accessor } from "gnim"
 import { debugLog } from "@/lib/log"
 import { logWarn } from "@/lib/notify"
-import { callGirAsync } from "@/lib/subprocess"
+import { callGirAsync } from "@/lib/helpers/gir"
 
-/** Bluetooth access. AstalBluetooth singleton only touched here. */
+/**
+ * Bluetooth access. AstalBluetooth singleton only touched here.
+ *
+ * Documented API (docs.astal.dev/bluetooth): `get_default()` returns the
+ * singleton; `adapter` is "the first registered adapter which is usually the
+ * only adapter" and is nullable; `adapters` is the list of adapters on the
+ * host; `adapter-added` / `adapter-removed` fire when an adapter is registered
+ * or unregistered on the `org.bluez` bus; `toggle()` flips the first adapter's
+ * `powered`.
+ *
+ * Two behaviours of the *installed* build (libastal-bluetooth-git r930.bcd02cb,
+ * read from `lib/bluetooth/src/bluetooth.vala`) shape the code below. Neither is
+ * promised by the docs, so do not rely on them without re-checking:
+ *
+ *  1. `get_default()` cannot propagate a D-Bus failure — it only constructs, and
+ *     `construct` wraps the `org.bluez` lookup in its own try/catch. The
+ *     singleton is therefore always a valid object and needs no null guard here.
+ *  2. Only `adapters` is ever notified: `adapter-added` / `adapter-removed` call
+ *     `notify_property("adapters")`, and nothing notifies `adapter`, whose
+ *     getter is `adapters.nth_data(0)`.
+ *
+ * Astal reports no daemon-presence state, and "no `org.bluez`" cannot be told
+ * apart from "`org.bluez` with no adapter" through it (both yield a null
+ * `adapter`), so the name watch below exists solely to separate those two.
+ */
 
-let bluetooth: AstalBluetooth.Bluetooth | null = null
-try {
-    bluetooth = AstalBluetooth.get_default()
-} catch (err) {
-    // bluetoothd / org.bluez not on the bus yet at login: stay uninitialized
-    // and retry when the name appears (see the bus watch below) instead of
-    // throwing at import time and requiring a shell restart.
-    logWarn("bluetooth: service unavailable at startup:", err)
-}
-
-function safeGetAdapter(): AstalBluetooth.Adapter | null {
-    try {
-        return bluetooth?.get_adapter() ?? null
-    } catch {
-        return null
-    }
-}
-
-const [adapterState, setAdapterState] = createState<AstalBluetooth.Adapter | null>(safeGetAdapter())
-const [serviceAvailable, setServiceAvailable] = createState<boolean>(bluetooth !== null)
-
-function refreshAdapter(): void {
-    setAdapterState(safeGetAdapter())
-}
-
-function attachSignals(bt: AstalBluetooth.Bluetooth): void {
-    // Astal callbacks for late D-Bus availability: when bluetoothd appears
-    // after the shell started, `adapter-added` fires and the UI re-resolves.
-    bt.connect("adapter-added", () => {
-        debugLog("bluetooth", "adapter-added")
-        setServiceAvailable(true)
-        refreshAdapter()
-    })
-    bt.connect("adapter-removed", () => {
-        debugLog("bluetooth", "adapter-removed")
-        refreshAdapter()
-    })
-    bt.connect("notify::adapter", refreshAdapter)
-    bt.connect("notify::adapters", refreshAdapter)
-}
-
-/** (Re)create the singleton after it was missing at startup. */
-function ensureBluetooth(): AstalBluetooth.Bluetooth | null {
-    if (bluetooth === null) {
-        try {
-            bluetooth = AstalBluetooth.get_default()
-            attachSignals(bluetooth)
-        } catch (err) {
-            logWarn("bluetooth: service still unavailable:", err)
-            return null
-        }
-    }
-    return bluetooth
-}
-
-if (bluetooth !== null) attachSignals(bluetooth)
-
-// Raw D-Bus name watch: fires even if Astal's own object-manager signals
-// miss a late bluetoothd start. Callbacks are best-effort — Astal signals
-// above remain the primary path.
-try {
-    type WatchFn = (
-        busType: number,
-        name: string,
-        flags: number,
-        appeared: (connection: unknown, name: string, owner: string) => void,
-        vanished: (connection: unknown, name: string) => void,
-    ) => number
-    const watchName = (Gio as unknown as { bus_watch_name: WatchFn }).bus_watch_name
-    watchName(
-        Gio.BusType.SYSTEM,
-        "org.bluez",
-        Gio.BusNameWatcherFlags.NONE,
-        () => {
-            debugLog("bluetooth", "org.bluez appeared")
-            setServiceAvailable(true)
-            ensureBluetooth()
-            refreshAdapter()
-        },
-        () => {
-            debugLog("bluetooth", "org.bluez vanished")
-            setServiceAvailable(false)
-            setAdapterState(null)
-        },
-    )
-} catch (err) {
-    debugLog("bluetooth", "bus watch unavailable", err)
-}
+/** AstalBluetooth singleton. */
+const bluetooth = AstalBluetooth.get_default()
 
 /** The AstalBluetooth singleton (for property bindings). */
 export function getBluetooth(): AstalBluetooth.Bluetooth {
-    return ensureBluetooth() ?? (bluetooth as AstalBluetooth.Bluetooth)
+    return bluetooth
 }
 
-/** Reactive first adapter: updates when bluetoothd appears late or hardware changes. */
-export const bluetoothAdapter: Accessor<AstalBluetooth.Adapter | null> = adapterState
+/**
+ * Reactive first adapter.
+ *
+ * Bound via `adapters`, not `adapter`. The installed build notifies only
+ * `adapters`, so a gnim binding on `adapter` subscribes to `notify::adapter` —
+ * a signal that is never emitted — and stays frozen on its first value.
+ * Measured on that build: `notify::adapters` fires on adapter add *and* remove
+ * while `notify::adapter` never fires, and `get_adapter()` and
+ * `get_adapters()[0]` return the same value at every sample. Indexing the
+ * notified list also matches the documented meaning of `adapter`, "the first
+ * registered adapter which is usually the only adapter".
+ */
+export const bluetoothAdapter: Accessor<AstalBluetooth.Adapter | null> = createBinding(bluetooth, "adapters")(
+    (list) => list[0] ?? null,
+)
 
-/** Whether org.bluez is on the bus (false while waiting for a late bluetoothd). */
-export const bluezAvailable: Accessor<boolean> = serviceAvailable
+// `Gio.bus_watch_name` is declared with GObject.Closure params, which plain
+// arrow functions do not satisfy.
+type BusWatch = (
+    busType: number,
+    name: string,
+    flags: number,
+    appeared: (connection: unknown, name: string, owner: string) => void,
+    vanished: (connection: unknown, name: string) => void,
+) => number
+
+// Seeded false: name ownership cannot be read without a blocking round trip,
+// and GIO invokes the first handler on the next main-loop iteration. Safe here
+// because this value is only consumed while no adapter is present, so the brief
+// window where it is not yet authoritative cannot be observed.
+const [bluezOnBus, setBluezOnBus] = createState(false)
+;(Gio as unknown as { bus_watch_name: BusWatch }).bus_watch_name(
+    Gio.BusType.SYSTEM,
+    "org.bluez",
+    Gio.BusNameWatcherFlags.NONE,
+    () => setBluezOnBus(true),
+    () => setBluezOnBus(false),
+)
+
+/**
+ * Whether `org.bluez` currently owns a name on the system bus.
+ *
+ * This is strictly name ownership, not adapter presence: it is `true` while
+ * BlueZ runs even on a host with no adapter, and `false` when BlueZ is not
+ * running at all. Do not substitute `getAdapter() !== null` or an
+ * `adapters.length > 0` test — that answers a different question and cannot
+ * tell the two states apart, which is the sole reason for the watch above.
+ */
+export const bluezAvailable: Accessor<boolean> = bluezOnBus
 
 /** The first (usually only) adapter, or null if no Bluetooth hardware. */
 export function getAdapter(): AstalBluetooth.Adapter | null {
-    if (adapterState.peek() !== null) return adapterState.peek()
-    refreshAdapter()
-    return adapterState.peek()
+    return bluetooth.get_adapter()
 }
 
 /** All devices registered on the bluez bus (paired + discovered). */
 export function getDevices(): AstalBluetooth.Device[] {
-    try {
-        return ensureBluetooth()?.get_devices() ?? []
-    } catch {
-        return []
-    }
+    return bluetooth.get_devices()
 }
 
-/** Toggle the adapter's powered state (on/off). */
+/**
+ * Toggle the first adapter's `powered` state.
+ *
+ * Guarded because the documented `adapter` property is nullable while
+ * `toggle()` is documented as acting on that adapter; the installed build
+ * dereferences it unconditionally.
+ */
 export function togglePower(): void {
     debugLog("bluetooth", "togglePower")
-    const bt = ensureBluetooth()
-    if (!bt || !getAdapter()) {
+    if (!getAdapter()) {
         logWarn("bluetooth: no adapter to toggle")
         return
     }
     try {
-        bt.toggle()
+        bluetooth.toggle()
     } catch (err) {
         logWarn("bluetooth: failed to toggle power:", err)
     }
@@ -180,7 +161,7 @@ export function startDiscovery(): void {
 /** Stop an active scan. */
 export function stopDiscovery(): void {
     debugLog("bluetooth", "stopDiscovery")
-    const adapter = adapterState.peek()
+    const adapter = getAdapter()
     if (!adapter) return
     try {
         if (adapter.get_discovering()) adapter.stop_discovery()

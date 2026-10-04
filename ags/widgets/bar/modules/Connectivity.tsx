@@ -46,8 +46,8 @@ export function Connectivity() {
         return bluezAvailable() ? { kind: "missing" } : { kind: "waiting" }
     })
 
-    // startDiscovery is safe to call unconditionally: the service re-resolves
-    // the live adapter and no-ops while unpowered or adapter-less.
+    // startDiscovery is safe to call unconditionally: it resolves the live
+    // adapter itself and no-ops while unpowered or adapter-less.
     const selectTab = (id: ConnTab) => {
         setTab(id)
         if (id === "wifi") {
