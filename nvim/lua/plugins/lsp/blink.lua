@@ -74,7 +74,7 @@ return {
 			-- Advanced Scoring
 			use_proximity = true,
 
-			-- Orden de sorting
+			-- Sort order
 			sorts = {
 				"exact",
 				"score",

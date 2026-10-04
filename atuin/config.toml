@@ -1,15 +1,14 @@
-# Estilo de interfaz compacto (estilo menú en la parte inferior)
+# Compact UI style (menu style at the bottom)
 style = "compact"
 
-# Habilitar que la flecha hacia arriba abra Atuin automáticamente
+# Open Atuin automatically when pressing Up
 enter_accept = true
 
 search_mode = "fuzzy"
 
-# Esto hace que, al presionar Flecha Arriba, use lo que ya escribiste
-# como filtro inicial de la búsqueda difusa
+# Makes Up use what you already typed as the initial fuzzy search filter
 filter_mode_shell_up_key_binding = "directory"
 
-# Mostrar las estadísticas detalladas (duración, fecha, etc.)
+# Show detailed stats (duration, date, etc.)
 show_preview = true
 inline_height = 10

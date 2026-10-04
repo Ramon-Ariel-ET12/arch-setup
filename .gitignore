@@ -86,6 +86,9 @@ ags/cache/
 # Matugen output
 matugen/generated/
 
+# tmux runtime state (prompt history written by history-file)
+tmux/history
+
 # Scratch / local experiments
 temp/
 

@@ -13,7 +13,7 @@
 #   ./install.sh --force                  overwrite without prompting
 #   ./install.sh --help                   show help
 #
-# Modules: agent-config, nvim, zsh, hypr, ags, matugen, kitty, mpv, fastfetch, atuin  (alias: agents, neovim)
+# Modules: agent-config, nvim, zsh, hypr, ags, matugen, kitty, tmux, mpv, fastfetch, atuin  (alias: agents, neovim)
 # Target resolution: --home > --user > $HOME
 
 set -euo pipefail
@@ -48,7 +48,7 @@ Usage: ./install.sh [options]
 Options:
   --user <name>      install for system user <name> (resolves home via getent passwd)
   --home <path>      install to explicit home directory <path>
-  --only <list>      comma-separated modules: agent-config,nvim,zsh,hypr,ags,matugen,kitty,mpv,fastfetch,atuin  (or agents,neovim)
+  --only <list>      comma-separated modules: agent-config,nvim,zsh,hypr,ags,matugen,kitty,tmux,mpv,fastfetch,atuin  (or agents,neovim)
                      if omitted, interactive selection is shown
   --force            overwrite existing files/symlinks without asking
   --check            dry-run: show what would be done, change nothing
@@ -73,6 +73,7 @@ Modules:
   ags           -> links ags/  -> \$HOME/.config/ags
   matugen       -> links matugen/ -> \$HOME/.config/matugen (Material You theme config; regenerated outputs into hypr/ags)
   kitty         -> links kitty/ -> \$HOME/.config/kitty
+  tmux          -> links tmux/ -> \$HOME/.config/tmux
   mpv           -> links mpv/  -> \$HOME/.config/mpv
   fastfetch     -> links fastfetch/ -> \$HOME/.config/fastfetch
   atuin         -> links atuin/ -> \$HOME/.config/atuin
@@ -687,6 +688,16 @@ install_atuin() {
   install_config_dir "atuin" "atuin"
 }
 
+install_tmux() {
+  echo
+  echo -e "${CYAN}== tmux ==${RESET}  ${DIM}$REPO_ROOT/tmux -> $TARGET_HOME/.config/tmux${RESET}"
+  install_config_dir "tmux" "tmux"
+  # tmux.conf recargable referencia la config por su ruta XDG.
+  if [ "$CHECK" != 1 ]; then
+    echo -e "  ${DIM}→ reload a running server with: prefix + r${RESET}"
+  fi
+}
+
 # Shared installer for simple flat config dirs (kitty, mpv, ...).
 # Same-user => whole-dir symlink; other-user => per-file symlinks excluding
 # local-only files (.git, .gitignore, .luarc.json) so each user regenerates
@@ -837,6 +848,8 @@ validate_dependencies() {
   local matugen_need=(matugen)
   local kitty_need=(kitty)
   local mpv_need=(mpv yt-dlp)
+  local tmux_need=(tmux)
+  local tmux_opt=(wl-copy)
   local fastfetch_need=(fastfetch)
   local atuin_need=(atuin)
 
@@ -921,6 +934,7 @@ validate_dependencies() {
     [fc-match]="fontconfig (font fallback resolution)"
     [mpv]="mpv"
     [yt-dlp]="yt-dlp (mpv ytdl_hook backend)"
+    [tmux]="tmux (terminal multiplexer)"
   )
 
   add_need() { local b="$1"; if [[ -z "${seen_need[$b]:-}" ]]; then seen_need[$b]=1; need+=("$b"); fi; }
@@ -939,6 +953,8 @@ validate_dependencies() {
              for b in "${hypr_opt[@]}"; do add_opt "$b"; done ;;
       kitty) for b in "${kitty_need[@]}" "${font_need[@]}"; do add_need "$b"; done ;;
       mpv)   for b in "${mpv_need[@]}"; do add_need "$b"; done ;;
+      tmux) for b in "${tmux_need[@]}"; do add_need "$b"; done
+             for b in "${tmux_opt[@]}"; do add_opt "$b"; done ;;
       matugen) for b in "${matugen_need[@]}"; do add_need "$b"; done ;;
       fastfetch) for b in "${fastfetch_need[@]}"; do add_need "$b"; done ;;
       atuin) for b in "${atuin_need[@]}"; do add_need "$b"; done ;;
@@ -1040,7 +1056,7 @@ validate_dependencies() {
 }
 
 select_modules_interactive() {
-  local all_modules=("agent-config" "nvim" "zsh" "hypr" "ags" "matugen" "kitty" "mpv" "fastfetch" "atuin")
+  local all_modules=("agent-config" "nvim" "zsh" "hypr" "ags" "matugen" "kitty" "tmux" "mpv" "fastfetch" "atuin")
   local selected=()
 
   # If --only provided, parse it
@@ -1056,6 +1072,7 @@ select_modules_interactive() {
         ags|astal|desktop) selected+=("ags") ;;
         matugen) selected+=("matugen") ;;
         kitty|terminal) selected+=("kitty") ;;
+        tmux) selected+=("tmux") ;;
         mpv|video) selected+=("mpv") ;;
         fastfetch) selected+=("fastfetch") ;;
         atuin|history) selected+=("atuin") ;;
@@ -1064,7 +1081,7 @@ select_modules_interactive() {
             selected=("${all_modules[@]}")
             break
           else
-            echo -e "${RED}Error:${RESET} unknown module: $t (valid: agent-config,nvim,zsh,hypr,ags,matugen,kitty,mpv,fastfetch,atuin,all)" >&2
+            echo -e "${RED}Error:${RESET} unknown module: $t (valid: agent-config,nvim,zsh,hypr,ags,matugen,kitty,tmux,mpv,fastfetch,atuin,all)" >&2
             exit 1
           fi
           ;;
@@ -1097,9 +1114,10 @@ select_modules_interactive() {
     echo "  5) ags           (.config/ags)"
     echo "  6) matugen       (.config/matugen)"
     echo "  7) kitty         (.config/kitty)"
-    echo "  8) mpv           (.config/mpv)"
-    echo "  9) fastfetch     (.config/fastfetch)"
-    echo "  10) atuin        (.config/atuin)"
+    echo "  8) tmux          (.config/tmux)"
+    echo "  9) mpv           (.config/mpv)"
+    echo "  10) fastfetch    (.config/fastfetch)"
+    echo "  11) atuin        (.config/atuin)"
     echo "  a) all"
     echo "  (e.g. '2 4' or 'a', empty = cancel)"
     read -r -p "> " input || { SELECTED_MODULES=(); return; }
@@ -1112,7 +1130,7 @@ select_modules_interactive() {
     local ok=1
     local -a idxs=()
     for token in $input; do
-      if [[ "$token" =~ ^([1-9]|10)$ ]]; then
+      if [[ "$token" =~ ^([1-9]|1[01])$ ]]; then
         idxs+=("$((token-1))")
       else
         echo "  Invalid: $token"
@@ -1178,6 +1196,7 @@ for mod in "${SELECTED_MODULES[@]}"; do
     ags) install_ags ;;
     matugen) install_matugen ;;
     kitty) install_kitty ;;
+    tmux) install_tmux ;;
     mpv) install_mpv ;;
     fastfetch) install_fastfetch ;;
     atuin) install_atuin ;;
@@ -1210,6 +1229,9 @@ else
   if [[ " ${SELECTED_MODULES[*]} " == *" kitty "* ]]; then
     echo -e "  ${DIM}→ kitty config linked; restart kitty${RESET}"
   fi
+  if [[ " ${SELECTED_MODULES[*]} " == *" tmux "* ]]; then
+    echo -e "  ${DIM}→ tmux config linked; new server picks it up, running one: prefix + r${RESET}"
+  fi
   if [[ " ${SELECTED_MODULES[*]} " == *" mpv "* ]]; then
     echo -e "  ${DIM}→ mpv config linked; restart mpv${RESET}"
   fi
@@ -1233,6 +1255,7 @@ if [ "$CHECK" != 1 ]; then
       ags)  ls -ld "$TARGET_HOME/.config/ags" 2>&1 | sed 's/^/  /' ;;
       matugen) ls -ld "$TARGET_HOME/.config/matugen" 2>&1 | sed 's/^/  /' ;;
       kitty) ls -ld "$TARGET_HOME/.config/kitty" 2>&1 | sed 's/^/  /' ;;
+      tmux) ls -ld "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/tmux/tmux.conf" 2>&1 | sed 's/^/  /' ;;
       mpv)  ls -ld "$TARGET_HOME/.config/mpv" 2>&1 | sed 's/^/  /' ;;
       fastfetch) ls -ld "$TARGET_HOME/.config/fastfetch" 2>&1 | sed 's/^/  /' ;;
       atuin) ls -ld "$TARGET_HOME/.config/atuin" 2>&1 | sed 's/^/  /' ;;
