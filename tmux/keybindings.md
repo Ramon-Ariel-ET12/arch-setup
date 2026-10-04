@@ -38,6 +38,7 @@
 | `prefix + q` | `display-panes -d 1200` | Show big pane numbers briefly |
 | `prefix + x` | `kill-pane` | Close pane |
 | `prefix + Q` | `kill-pane -t :.` | Close pane with confirmation |
+| `prefix + T` | `command-prompt -I "#{pane_title}"` → `select-pane -T` | Rename the active pane (prompt seeded with current title) |
 
 ## Layouts
 
@@ -91,6 +92,7 @@ Enter with `prefix + [`.
 | `mode-keys` / `status-keys` | `vi` | vim bindings in copy mode and the status prompt |
 | `set-clipboard` | `external` | Copy over OSC 52 without apps clobbering tmux buffers |
 | `pane-scrollbars` | `modal` | Scrollbar only in copy mode, no width stolen otherwise |
+| `pane-border-format` | `#{pane_index}: #{pane_title}` | Pane labels sit on the border line above each pane |
 | `history-limit` | `100000` | Deep scrollback |
 | `default-terminal` | `tmux-256color` | Truecolor inside tmux on kitty |
 | `prefix2` | `None` | No second prefix; `C-b` reaches the app as a normal key |
@@ -103,5 +105,7 @@ accepts `single`, `double`, `heavy`, `simple`, `number`, `spaces`, so
 `tmux.conf` tests `#{version}` and picks `rounded` when available. Popups
 (`popup-border-lines`) support `rounded` on both versions.
 
-`resize-pane` has no `-z` flag, and `rename-window` / `rename-session` require a
-name argument — hence the `command-prompt` wrappers and the single `z` zoom key.
+`resize-pane` has no `-z` flag, and `rename-window` / `rename-session` / `select-pane -T`
+require an argument — hence the `command-prompt` wrappers and the single `z` zoom key.
+tmux 3.8 gives pane renaming a default `C-b T`; on 3.7 the same effect is the explicit
+`prefix + T` binding here.
