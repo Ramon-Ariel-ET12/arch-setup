@@ -89,6 +89,62 @@ const [bluezOnBus, setBluezOnBus] = createState(false)
  */
 export const bluezAvailable: Accessor<boolean> = bluezOnBus
 
+/**
+ * Revision counter for derived device state (connected device, known /
+ * available grouping, device names).
+ *
+ * `notify::devices` fires only when a device is added or removed
+ * (`device_added` / `device_removed` are the sole `notify_property("devices")`
+ * paths in the installed build's `bluetooth.vala`), so computeds keyed on the
+ * device list alone miss connect/disconnect and pair/trust flips — BlueZ
+ * changes no list membership for those. This counter additionally ticks on
+ * the aggregate `is-connected` / `is-powered` notifies (driven by every
+ * device/adapter `notify` via `sync()`) and on per-device
+ * `connected` / `paired` / `trusted` / `alias` notifies, which also covers
+ * the multi-device edge where one device flips while another keeps the
+ * aggregate unchanged. Intentionally not full per-device `notify`: RSSI
+ * flaps during discovery would rebuild the lists constantly. Live per-row
+ * labels (battery, icon) keep their own direct property bindings.
+ */
+const deviceWatchIds = new Map<AstalDevice, number[]>()
+
+function watchDevice(device: AstalDevice): void {
+    if (deviceWatchIds.has(device)) return
+    deviceWatchIds.set(device, [
+        device.connect("notify::connected", bumpRevision),
+        device.connect("notify::paired", bumpRevision),
+        device.connect("notify::trusted", bumpRevision),
+        device.connect("notify::alias", bumpRevision),
+    ])
+}
+
+function unwatchDevice(device: AstalDevice): void {
+    const ids = deviceWatchIds.get(device)
+    if (!ids) return
+    deviceWatchIds.delete(device)
+    for (const id of ids) device.disconnect(id)
+}
+
+const [revisionAccessor, bump] = createState(0)
+function bumpRevision(): void {
+    bump((n) => n + 1)
+}
+
+for (const device of getDevices()) watchDevice(device)
+bluetooth.connect("device-added", (_bt: AstalBluetooth.Bluetooth, device: AstalDevice) => {
+    watchDevice(device)
+    bumpRevision()
+})
+bluetooth.connect("device-removed", (_bt: AstalBluetooth.Bluetooth, device: AstalDevice) => {
+    unwatchDevice(device)
+    bumpRevision()
+})
+bluetooth.connect("notify::is-connected", bumpRevision)
+bluetooth.connect("notify::is-powered", bumpRevision)
+bluetooth.connect("notify::adapters", bumpRevision)
+
+export const bluetoothRevision: Accessor<number> = revisionAccessor
+
 /** The first (usually only) adapter, or null if no Bluetooth hardware. */
 export function getAdapter(): AstalBluetooth.Adapter | null {
     return bluetooth.get_adapter()

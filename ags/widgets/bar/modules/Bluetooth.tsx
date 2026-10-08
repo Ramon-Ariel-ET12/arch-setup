@@ -8,6 +8,7 @@ import { EmptyState, ErrorLabel, LoadingRow } from "@/lib/helpers/empty"
 import { pctLabel } from "@/lib/helpers/numbers"
 import { useRowAction } from "@/lib/row-action"
 import {
+    bluetoothRevision,
     connectDevice,
     disconnectDevice,
     getBluetooth,
@@ -264,11 +265,10 @@ function DeviceList({
 export function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
     const powered = createBinding(adapter, "powered")
     const discovering = createBinding(adapter, "discovering")
-    const devices = createBinding(getBluetooth(), "devices")
 
     // First connected device, if any — shown in the header like wifi.
     const connected = createComputed(() => {
-        void devices()
+        void bluetoothRevision()
         return getDevices().find((d) => d.get_connected()) ?? null
     })
 
@@ -277,14 +277,14 @@ export function BluetoothPanel({ adapter }: { adapter: AstalAdapter }) {
     // Unknown/nameless devices are kept in Available — that is where
     // not-yet-paired headphones show up while discovering.
     const known = createComputed(() => {
-        void devices()
+        void bluetoothRevision()
         return [...getDevices()]
             .filter((d) => !d.get_connected() && isKnown(d))
             .sort((a, b) => deviceName(a).localeCompare(deviceName(b)))
     })
 
     const available = createComputed(() => {
-        void devices()
+        void bluetoothRevision()
         return [...getDevices()]
             .filter((d) => !d.get_connected() && !isKnown(d))
             .sort((a, b) => b.get_rssi() - a.get_rssi() || deviceName(a).localeCompare(deviceName(b)))
@@ -415,7 +415,6 @@ export function BluetoothTrigger() {
     const bt = getBluetooth()
     const powered = createBinding(bt, "isPowered")
     const isConnected = createBinding(bt, "isConnected")
-    const devices = createBinding(bt, "devices")
 
     // Default bluetooth glyph; replaced by the connected device's own icon.
     const defaultIcon = createComputed(() => {
@@ -424,7 +423,7 @@ export function BluetoothTrigger() {
     })
 
     const active = createComputed(() => {
-        void devices()
+        void bluetoothRevision()
         return getDevices().find((d) => d.get_connected()) ?? null
     })
 

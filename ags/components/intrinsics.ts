@@ -17,6 +17,7 @@ type SeparatorProps = Props<Gtk.Separator, Gtk.Separator.ConstructorProps>
 type SpinnerProps = Props<Gtk.Spinner, Gtk.Spinner.ConstructorProps>
 type FixedProps = Props<Gtk.Fixed, Gtk.Fixed.ConstructorProps>
 type CalendarProps = Props<Gtk.Calendar, Gtk.Calendar.ConstructorProps>
+type DropDownProps = Props<Gtk.DropDown, Gtk.DropDown.ConstructorProps>
 
 Object.assign(intrinsicElements as Record<string, unknown>, {
     flowbox: Gtk.FlowBox,
@@ -26,6 +27,7 @@ Object.assign(intrinsicElements as Record<string, unknown>, {
     spinner: Gtk.Spinner,
     fixed: Gtk.Fixed,
     calendar: Gtk.Calendar,
+    dropdown: Gtk.DropDown,
 })
 
 declare global {
@@ -38,6 +40,7 @@ declare global {
             spinner: SpinnerProps
             fixed: FixedProps
             calendar: CalendarProps
+            dropdown: DropDownProps
         }
     }
 }
